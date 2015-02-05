@@ -1,6 +1,10 @@
-ndnSIM 2.0
-==========
+amus-ndnSIM
+===========
 
+This is a custom version of ndnSIM 2.0, supporting adaptive multimedia streaming and the BRITE extension.
+Please refer to the original [ndnSIM github repository](http://github.com/named-data/ndnSIM) for documentation.
+
+---------------------------------------------
 ndnSIM 2.0 is a new release of [NS-3 based Named Data Networking (NDN)
 simulator](http://ndnsim.net/1.0/) that went through extensive refactoring and rewriting.
 The key new features of the new version:
