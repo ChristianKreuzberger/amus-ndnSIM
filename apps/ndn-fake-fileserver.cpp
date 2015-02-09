@@ -158,7 +158,7 @@ FakeFileServer::OnInterest(shared_ptr<const Interest> interest)
     if (fileSize == -1)
       return; // file does not exist, just quit
 
-    if (seqNo >= ceil(fileSize / m_maxPayloadSize))
+    if (seqNo > ceil(fileSize / m_maxPayloadSize))
       return; // sequence not available
 
     // else:
@@ -256,6 +256,7 @@ long FakeFileServer::GetFileSize(std::string filename)
     return stat_buf.st_size;
   }
   // else: file not found
+  NS_LOG_UNCOND("ERROR: File not found: " << filename);
   return -1;
 }
 

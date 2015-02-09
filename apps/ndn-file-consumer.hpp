@@ -92,6 +92,10 @@ protected:
   GetNextSeqNo(); // returns the next sequence number that should be scheduled for download
 
 
+  virtual bool
+  AreAllSeqReceived();
+
+
   EventId m_sendEvent; ///< @brief EventId of pending "send packet" event
   Name m_interestName;     ///< \brief NDN Name of the Interest (use Name)
   Time m_interestLifeTime; ///< \brief LifeTime for interest packet
@@ -101,6 +105,11 @@ protected:
 
   bool m_hasRequestedManifest;
   bool m_hasReceivedManifest;
+
+
+  std::string m_outFile;
+
+
   long m_fileSize;
   uint32_t m_curSeqNo;
   uint32_t m_maxSeqNo;
@@ -110,6 +119,8 @@ protected:
 
 
   std::vector<SequenceStatus> m_sequenceStatus;
+
+
 
 
 };

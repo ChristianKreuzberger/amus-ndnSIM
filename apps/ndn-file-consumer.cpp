@@ -59,6 +59,8 @@ FileConsumer::GetTypeId(void)
                     MakeTimeAccessor(&FileConsumer::m_interestLifeTime), MakeTimeChecker())
       .AddAttribute("ManifestPostfix", "The manifest string added after a file", StringValue("/manifest"),
                     MakeStringAccessor(&FileConsumer::m_manifestPostfix), MakeStringChecker())
+      .AddAttribute("WriteOutfile", "Write the downloaded file to outfile (empty means disabled)", StringValue(""),
+                    MakeStringAccessor(&FileConsumer::m_outFile), MakeStringChecker())
       .AddAttribute("MaxPayloadSize", "The maximum size of the payload of a data packet", UintegerValue(1400),
                     MakeUintegerAccessor(&FileConsumer::m_maxPayloadSize),
                     MakeUintegerChecker<uint32_t>())
@@ -97,6 +99,13 @@ FileConsumer::StartApplication() // Called at time specified by Start
   m_maxSeqNo = -1;
   m_lastSeqNoReceived = -1;
   m_sequenceStatus.clear();
+
+  if (!m_outFile.empty())
+  {
+    // create outfile
+    FILE* fp = fopen(m_outFile.c_str(), "w");
+    fclose(fp);
+  }
 
   // Start requester - schedule "SendPacket" method
   ScheduleNextSendEvent();
@@ -177,7 +186,9 @@ FileConsumer::SendFilePacket()
 
   unsigned seq = GetNextSeqNo();
 
-  if (seq > m_maxSeqNo)
+  NS_LOG_DEBUG("Requesting Sequence " << seq);
+
+  if (seq > m_maxSeqNo || m_fileSize == 0)
     return;
 
   m_sequenceStatus[seq] = Requested;
@@ -223,6 +234,24 @@ FileConsumer::GetNextSeqNo()
 
   return seqNo;
 }
+
+
+
+bool
+FileConsumer::AreAllSeqReceived()
+{
+  for ( auto &seqStatus : m_sequenceStatus ) {
+    if (seqStatus != Received)
+    {
+      return false;
+    }
+  }
+
+  return true;
+
+}
+
+
 
 
 ///////////////////////////////////////////////////
@@ -275,14 +304,22 @@ FileConsumer::OnData(shared_ptr<const Data> data)
       NS_LOG_DEBUG("Received Manifest! FileSize=" << fileSize);
       m_hasReceivedManifest = true;
       m_fileSize = fileSize;
-      m_maxSeqNo = ceil(m_fileSize/m_maxPayloadSize)-1;
-      m_curSeqNo = 0;
 
-      unsigned int maxSeqNr = m_fileSize/m_maxPayloadSize;
-      NS_LOG_DEBUG("Resulting Max Seq Nr = " << maxSeqNr);
+      if (m_fileSize == -1)
+      {
+        NS_LOG_UNCOND("ERROR: File not found: " << interestName);
+        m_fileSize = 0;
+        m_curSeqNo = 0;
+        m_maxSeqNo = 0;
+      } else
+      {
+        m_curSeqNo = 0;
+        m_maxSeqNo = ceil(m_fileSize/m_maxPayloadSize);
+        NS_LOG_DEBUG("Resulting Max Seq Nr = " << m_maxSeqNo);
 
-      // Trigger OnManifest
-      OnManifest(fileSize);
+        // Trigger OnManifest
+        OnManifest(fileSize);
+      }
 
       return;
     }
@@ -298,6 +335,7 @@ FileConsumer::OnData(shared_ptr<const Data> data)
 
   // trigger OnFileData
   NS_LOG_DEBUG("SeqNo: " << seqNo);
+  NS_LOG_DEBUG("Contentvaluesize: " << data->getContent().value_size());
   OnFileData(seqNo, data->getContent().value(), data->getContent().value_size());
 }
 
@@ -309,26 +347,30 @@ FileConsumer::OnManifest(long fileSize)
 {
   // reserve elements in sequence status
   m_sequenceStatus.clear();
-  m_sequenceStatus.resize(ceil(m_fileSize/m_maxPayloadSize));
+  m_sequenceStatus.resize(ceil(m_fileSize/m_maxPayloadSize)+1);
 
   // Schedule Next Send Event
-  m_sendEvent = Simulator::Schedule(Seconds(0.0), &FileConsumer::SendPacket, this);
+  ScheduleNextSendEvent();
 }
 
 
 void
 FileConsumer::OnFileData(uint32_t seq_nr, const uint8_t* data, unsigned length)
 {
-  FILE * fp = fopen("out.bin", "ab");
-  fwrite(data, sizeof(uint8_t), length, fp);
-  fclose(fp);
-  if (seq_nr+1 >= ceil(m_fileSize/m_maxPayloadSize))
+  // write outfile if defined
+  if (!m_outFile.empty())
   {
-    OnFileReceived(0,0);
-    return;
+    FILE * fp = fopen(m_outFile.c_str(), "ab");
+    fwrite(data, sizeof(uint8_t), length, fp);
+    fclose(fp);
   }
 
-  ScheduleNextSendEvent();
+  if (AreAllSeqReceived())
+  {
+    OnFileReceived(0, 0);
+  } else {
+    ScheduleNextSendEvent();
+  }
 }
 
 void
