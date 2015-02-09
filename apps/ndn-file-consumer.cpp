@@ -139,20 +139,20 @@ FileConsumer::StopApplication() // Called at time specified by Stop
 }
 
 
-void
+bool
 FileConsumer::SendPacket()
 {
   // check if active
   if (!m_active)
-    return;
+    return false;
 
   NS_LOG_FUNCTION_NOARGS();
 
   // did we request or receive the manifest yet?
   if (!m_hasReceivedManifest && !m_hasRequestedManifest)
-    SendManifestPacket();
+    return SendManifestPacket();
   else // if we did, then we can start streaming
-    SendFilePacket();
+    return SendFilePacket();
 }
 
 
@@ -160,11 +160,11 @@ FileConsumer::SendPacket()
 //          Process outgoing packets             //
 ///////////////////////////////////////////////////
 
-void
+bool
 FileConsumer::SendManifestPacket()
 {
   if (!m_active)
-    return;
+    return false;
 
   NS_LOG_FUNCTION_NOARGS();
 
@@ -189,21 +189,23 @@ FileConsumer::SendManifestPacket()
   m_transmittedInterests(interest, this, m_face);
   m_face->onReceiveInterest(*interest);
 
+  return true;
+
 }
 
 
-void
+bool
 FileConsumer::SendFilePacket()
 {
   if (!m_active)
-    return;
+    return false;
 
   unsigned seq = GetNextSeqNo();
 
   NS_LOG_DEBUG("Requesting Sequence " << seq);
 
   if (seq > m_maxSeqNo || m_fileSize == 0)
-    return;
+    return false;
 
   m_sequenceStatus[seq] = Requested;
 
@@ -228,6 +230,7 @@ FileConsumer::SendFilePacket()
 
   m_curSeqNo++;
 
+  return true;
 }
 
 
@@ -374,6 +377,7 @@ FileConsumer::OnManifest(long fileSize)
 void
 FileConsumer::OnFileData(uint32_t seq_nr, const uint8_t* data, unsigned length)
 {
+  NS_LOG_FUNCTION(this << seq_nr << length);
   // write outfile if defined
   if (!m_outFile.empty())
   {
@@ -393,8 +397,9 @@ FileConsumer::OnFileData(uint32_t seq_nr, const uint8_t* data, unsigned length)
 void
 FileConsumer::ScheduleNextSendEvent(unsigned int miliseconds)
 {
+  NS_LOG_FUNCTION(this << miliseconds);
   // Schedule Next Send Event Now
-  m_sendEvent = Simulator::Schedule(Seconds(miliseconds), &FileConsumer::SendPacket, this);
+  m_sendEvent = Simulator::Schedule(Seconds(miliseconds/1000.0), &FileConsumer::SendPacket, this);
 }
 
 

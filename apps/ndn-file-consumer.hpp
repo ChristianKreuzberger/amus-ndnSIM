@@ -17,8 +17,8 @@
  * ndnSIM, e.g., in COPYING.md file.  If not, see <http://www.gnu.org/licenses/>.
  **/
 
-#ifndef NDN_MANIFESTCONSUMER_CBR_H
-#define NDN_MANIFESTCONSUMER_CBR_H
+#ifndef NDN_FILECONSUMER_H
+#define NDN_FILECONSUMER_H
 
 #include "ns3/ndnSIM/model/ndn-common.hpp"
 
@@ -83,13 +83,13 @@ protected:
   virtual void
   ScheduleNextSendEvent(unsigned int miliseconds=0);
 
-  virtual void
+  virtual bool
   SendPacket();
 
-  virtual void
+  virtual bool
   SendManifestPacket();
 
-  virtual void
+  virtual bool
   SendFilePacket();
 
   virtual uint32_t
