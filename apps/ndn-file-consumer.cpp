@@ -1,8 +1,8 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /**
- * Copyright (c) 2011-2015  Regents of the University of California.
+ * Copyright (c) 2015 - Christian Kreuzberger - based on ndnSIM
  *
- * This file is part of ndnSIM. See AUTHORS for complete list of ndnSIM authors and
+ * This file is part of amus-ndnSIM. See AUTHORS for complete list of ndnSIM authors and
  * contributors.
  *
  * ndnSIM is free software: you can redistribute it and/or modify it under the terms
@@ -64,6 +64,12 @@ FileConsumer::GetTypeId(void)
       .AddAttribute("MaxPayloadSize", "The maximum size of the payload of a data packet", UintegerValue(1400),
                     MakeUintegerAccessor(&FileConsumer::m_maxPayloadSize),
                     MakeUintegerChecker<uint32_t>())
+      .AddTraceSource("FileDownloadFinished", "Trace called every time a download finishes",
+                      MakeTraceSourceAccessor(&FileConsumer::m_downloadFinishedTrace))
+      .AddTraceSource("ManifestReceived", "Trace called every time a manifest is received",
+                      MakeTraceSourceAccessor(&FileConsumer::m_manifestReceivedTrace))
+      .AddTraceSource("FileDownloadStarted", "Trace called every time a download starts",
+                      MakeTraceSourceAccessor(&FileConsumer::m_downloadStartedTrace))
     ;
 
   return tid;
@@ -106,6 +112,13 @@ FileConsumer::StartApplication() // Called at time specified by Start
     FILE* fp = fopen(m_outFile.c_str(), "w");
     fclose(fp);
   }
+
+  // set start time
+  _start_time = Simulator::Now().GetMilliSeconds ();
+
+  _shared_interestName = make_shared<Name>(m_interestName);
+
+  m_downloadStartedTrace(this, _shared_interestName);
 
   // Start requester - schedule "SendPacket" method
   ScheduleNextSendEvent();
@@ -155,14 +168,15 @@ FileConsumer::SendManifestPacket()
 
   NS_LOG_FUNCTION_NOARGS();
 
+  shared_ptr<Name> interestNameWithManifest = make_shared<Name>(m_interestName);
+
   // create the interest name: m_interestName + manifest string (postfix)
-  shared_ptr<Name> interestName = make_shared<Name>(m_interestName);
-  interestName->append(m_manifestPostfix);
+  interestNameWithManifest->append(m_manifestPostfix);
 
   // create an interest, set nonce
   shared_ptr<Interest> interest = make_shared<Interest>();
   interest->setNonce(m_rand.GetValue());
-  interest->setName(*interestName);
+  interest->setName(*interestNameWithManifest);
 
   // set the interest lifetime
   time::milliseconds interestLifeTime(m_interestLifeTime.GetMilliSeconds());
@@ -349,6 +363,9 @@ FileConsumer::OnManifest(long fileSize)
   m_sequenceStatus.clear();
   m_sequenceStatus.resize(ceil(m_fileSize/m_maxPayloadSize)+1);
 
+  // call trace source
+  m_manifestReceivedTrace(this, _shared_interestName, fileSize);
+
   // Schedule Next Send Event
   ScheduleNextSendEvent();
 }
@@ -386,6 +403,13 @@ FileConsumer::OnFileReceived(unsigned status, unsigned length)
 {
   // do nothing here
   NS_LOG_DEBUG("Finally received the whole file!");
+
+  _finished_time = Simulator::Now().GetMilliSeconds ();
+  double downloadSpeed = (double)m_fileSize/ ( (double)(_finished_time - _start_time)/1000.0 );
+  NS_LOG_DEBUG("Download finished after " << (_finished_time - _start_time) << "ms; AvgSpeed = " << downloadSpeed << " bytes per second.");
+
+  // call trace source
+  this->m_downloadFinishedTrace(this, _shared_interestName, downloadSpeed, (_finished_time - _start_time));
 }
 
 

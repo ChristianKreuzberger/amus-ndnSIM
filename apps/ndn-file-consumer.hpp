@@ -1,8 +1,8 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /**
- * Copyright (c) 2011-2015  Regents of the University of California.
+ * Copyright (c) 2015 - Christian Kreuzberger - based on ndnSIM
  *
- * This file is part of ndnSIM. See AUTHORS for complete list of ndnSIM authors and
+ * This file is part of amus-ndnSIM. See AUTHORS for complete list of ndnSIM authors and
  * contributors.
  *
  * ndnSIM is free software: you can redistribute it and/or modify it under the terms
@@ -30,6 +30,10 @@
 
 #include "ns3/ndnSIM/model/ndn-common.hpp"
 #include "ns3/ndnSIM/utils/ndn-fw-hop-count-tag.hpp"
+
+#include "ns3/traced-callback.h"
+#include "ns3/ptr.h"
+#include "ns3/simple-ref-count.h"
 
 namespace ns3 {
 namespace ndn {
@@ -120,6 +124,18 @@ protected:
 
   std::vector<SequenceStatus> m_sequenceStatus;
 
+
+protected:
+  TracedCallback<Ptr<ns3::ndn::App> /* app */, shared_ptr<const Name> /* interestName */> m_downloadStartedTrace;
+  TracedCallback<Ptr<ns3::ndn::App> /* app */, shared_ptr<const Name> /* interestName */, long /*fileSize*/> m_manifestReceivedTrace;
+  TracedCallback<Ptr<ns3::ndn::App> /* app */, shared_ptr<const Name> /* interestName */,double /* downloadSpeedInBytesPerSecond */, long /*milliSeconds */> m_downloadFinishedTrace;
+
+
+
+private:
+  int64_t _start_time;
+  int64_t _finished_time;
+  shared_ptr<Name> _shared_interestName; // = make_shared<Name>(m_interestName);
 
 
 

@@ -1,9 +1,8 @@
-
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /**
- * Copyright (c) 2011-2015  Regents of the University of California.
+ * Copyright (c) 2015 - Christian Kreuzberger - based on ndnSIM
  *
- * This file is part of ndnSIM. See AUTHORS for complete list of ndnSIM authors and
+ * This file is part of amus-ndnSIM. See AUTHORS for complete list of ndnSIM authors and
  * contributors.
  *
  * ndnSIM is free software: you can redistribute it and/or modify it under the terms
