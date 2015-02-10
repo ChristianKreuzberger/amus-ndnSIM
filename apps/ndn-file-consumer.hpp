@@ -84,7 +84,7 @@ protected:
   OnTimeout(uint32_t seq_nr);
 
   virtual void
-  ScheduleNextSendEvent(unsigned int miliseconds=0);
+  ScheduleNextSendEvent(double miliseconds=0);
 
   virtual bool
   SendPacket();
@@ -132,6 +132,12 @@ protected:
 
   std::vector<SequenceStatus> m_sequenceStatus;
   std::map<uint32_t,EventId> m_chunkTimeoutEvents;
+  std::map<uint32_t,long> m_sequenceSendTime;
+
+
+    double averageTimeout;
+
+
 
 
 protected:

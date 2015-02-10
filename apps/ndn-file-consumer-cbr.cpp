@@ -117,11 +117,11 @@ FileConsumerCbr::OnFileData(uint32_t seq_nr, const uint8_t* data, unsigned lengt
 }
 
 void
-FileConsumerCbr::ScheduleNextSendEvent(unsigned int miliseconds)
+FileConsumerCbr::ScheduleNextSendEvent(double miliseconds)
 {
   NS_LOG_FUNCTION(this << miliseconds);
   // Schedule Next Send Event Now
-  m_sendEvent = Simulator::Schedule(Seconds((double)miliseconds/1000.0), &FileConsumerCbr::SendPacket, this);
+  m_sendEvent = Simulator::Schedule(NanoSeconds(miliseconds*1000000.0), &FileConsumerCbr::SendPacket, this);
 }
 
 

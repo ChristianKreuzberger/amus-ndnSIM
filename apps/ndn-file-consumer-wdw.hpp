@@ -33,7 +33,7 @@ namespace ndn {
  * @ingroup ndn-apps
  * @brief Ndn application for sending out Interest packets at a "constant" rate (Poisson process)
  */
-class FileConsumerCbr : public FileConsumer {
+class FileConsumerWdw : public FileConsumer {
 public:
   static TypeId
   GetTypeId();
@@ -42,8 +42,8 @@ public:
    * \brief Default constructor
    * Sets up randomizer function and packet sequence number
    */
-  FileConsumerCbr();
-  virtual ~FileConsumerCbr();
+  FileConsumerWdw();
+  virtual ~FileConsumerWdw();
 
 
   virtual void
@@ -70,13 +70,33 @@ protected:
   OnTimeout(uint32_t seqNo);
 
 
+  virtual void
+  IncrementWindow();
+
+  virtual void
+  DecrementWindow();
+
+
   unsigned int m_windowSize;
+  unsigned int m_maxWindowSize;
+  unsigned int m_windowThreshold;
   unsigned int m_inFlight;
 
+
+  uint32_t lastSeqNoRecv;
+  bool m_wrongSeqOrder;
+
+
+  unsigned int received_packets_during_this_window;
+  unsigned int timeouts_during_this_window;
 
   unsigned int packets_sent;
   unsigned int packets_received;
   unsigned int packets_timeout;
+
+
+
+
 
 
 };

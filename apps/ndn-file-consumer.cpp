@@ -208,15 +208,22 @@ FileConsumer::SendFilePacket()
     return false;
 
   m_sequenceStatus[seq] = Requested;
+  m_sequenceSendTime[seq] = Simulator::Now().GetMilliSeconds();
 
   NS_LOG_FUNCTION_NOARGS();
+
+
+
+  m_interestLifeTime = ns3::Time::FromDouble(averageTimeout, ns3::Time::MS);
 
   shared_ptr<Name> nameWithSequence = make_shared<Name>(m_interestName);
 
   nameWithSequence->appendSequenceNumber(seq);
 
   shared_ptr<Interest> interest = make_shared<Interest>();
-  interest->setNonce(m_rand.GetValue());
+
+  // m_rand returns a double value - multiply by 1000, else (int)nonce is always 0 !!!
+  interest->setNonce(m_rand.GetValue()*1000);
   interest->setName(*nameWithSequence);
 
   time::milliseconds interestLifeTime(m_interestLifeTime.GetMilliSeconds());
@@ -280,7 +287,8 @@ FileConsumer::CreateTimeoutEvent(uint32_t seqNo, uint32_t timeout)
     m_chunkTimeoutEvents[seqNo].Cancel();
   }
 
-  m_chunkTimeoutEvents[seqNo] = Simulator::Schedule(Seconds((double)timeout/1000.0), &FileConsumer::CheckSeqForTimeout, this, seqNo);
+
+  m_chunkTimeoutEvents[seqNo] = Simulator::Schedule(MilliSeconds(timeout+25), &FileConsumer::CheckSeqForTimeout, this, seqNo);
 }
 
 
@@ -289,10 +297,20 @@ FileConsumer::CreateTimeoutEvent(uint32_t seqNo, uint32_t timeout)
 void
 FileConsumer::CheckSeqForTimeout(uint32_t seqNo)
 {
+  if (seqNo == 986)
+  {
+    NS_LOG_UNCOND("CheckSeqForTimeout(986) called");
+  }
   if (m_sequenceStatus[seqNo] != Received)
   {
+    if (seqNo == 986)
+    {
+      NS_LOG_UNCOND("986 has timed out");
+    }
+
     m_sequenceStatus[seqNo] = TimedOut;
     NS_LOG_DEBUG("Timeout occured for seq " << seqNo);
+    m_chunkTimeoutEvents[seqNo].Cancel();
     OnTimeout(seqNo);
   }
 }
@@ -422,6 +440,14 @@ FileConsumer::OnFileData(uint32_t seq_nr, const uint8_t* data, unsigned length)
     fclose(fp);
   }
 
+
+  long diff  = Simulator::Now().GetMilliSeconds() - m_sequenceSendTime[seq_nr];
+
+  NS_LOG_UNCOND("RTT for seq " << seq_nr << " was: " << diff << "ms");
+
+  averageTimeout = (averageTimeout * 2 + diff)/3;
+
+
   if (AreAllSeqReceived())
   {
     OnFileReceived(0, 0);
@@ -431,11 +457,11 @@ FileConsumer::OnFileData(uint32_t seq_nr, const uint8_t* data, unsigned length)
 }
 
 void
-FileConsumer::ScheduleNextSendEvent(unsigned int miliseconds)
+FileConsumer::ScheduleNextSendEvent(double miliseconds)
 {
   NS_LOG_FUNCTION(this << miliseconds);
   // Schedule Next Send Event Now
-  m_sendEvent = Simulator::Schedule(Seconds(miliseconds/1000.0), &FileConsumer::SendPacket, this);
+  m_sendEvent = Simulator::Schedule(NanoSeconds(miliseconds*1000000.0), &FileConsumer::SendPacket, this);
 }
 
 
