@@ -66,9 +66,17 @@ protected:
   virtual void
   OnData(shared_ptr<const Data> data);
 
+  virtual void
+  OnTimeout(uint32_t seqNo);
+
 
   unsigned int m_windowSize;
   unsigned int m_inFlight;
+
+
+  unsigned int packets_sent;
+  unsigned int packets_received;
+  unsigned int packets_timeout;
 
 
 };

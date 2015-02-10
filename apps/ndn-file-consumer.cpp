@@ -222,6 +222,8 @@ FileConsumer::SendFilePacket()
   time::milliseconds interestLifeTime(m_interestLifeTime.GetMilliSeconds());
   interest->setInterestLifetime(interestLifeTime);
 
+  CreateTimeoutEvent(seq, m_interestLifeTime.GetMilliSeconds());
+
   NS_LOG_INFO("> File INTEREST (Seq: " << seq << "): " << interest->getName());
 
 
@@ -269,6 +271,38 @@ FileConsumer::AreAllSeqReceived()
 }
 
 
+
+void
+FileConsumer::CreateTimeoutEvent(uint32_t seqNo, uint32_t timeout)
+{
+  if (m_chunkTimeoutEvents.find( seqNo ) != m_chunkTimeoutEvents.end())
+  {
+    m_chunkTimeoutEvents[seqNo].Cancel();
+  }
+
+  m_chunkTimeoutEvents[seqNo] = Simulator::Schedule(Seconds((double)timeout/1000.0), &FileConsumer::CheckSeqForTimeout, this, seqNo);
+}
+
+
+
+
+void
+FileConsumer::CheckSeqForTimeout(uint32_t seqNo)
+{
+  if (m_sequenceStatus[seqNo] != Received)
+  {
+    m_sequenceStatus[seqNo] = TimedOut;
+    NS_LOG_DEBUG("Timeout occured for seq " << seqNo);
+    OnTimeout(seqNo);
+  }
+}
+
+
+
+void
+FileConsumer::OnTimeout(uint32_t seq_nr)
+{
+}
 
 
 ///////////////////////////////////////////////////
@@ -349,6 +383,8 @@ FileConsumer::OnData(shared_ptr<const Data> data)
 
   // make sure that we mark this sequence as received
   m_sequenceStatus[seqNo] = Received;
+  // cancel timeout event
+  m_chunkTimeoutEvents[seqNo].Cancel();
 
   // trigger OnFileData
   NS_LOG_DEBUG("SeqNo: " << seqNo);

@@ -81,6 +81,9 @@ protected:
   OnFileReceived(unsigned status, unsigned length);
 
   virtual void
+  OnTimeout(uint32_t seq_nr);
+
+  virtual void
   ScheduleNextSendEvent(unsigned int miliseconds=0);
 
   virtual bool
@@ -93,11 +96,16 @@ protected:
   SendFilePacket();
 
   virtual uint32_t
-  GetNextSeqNo(); // returns the next sequence number that should be scheduled for download
-
+  GetNextSeqNo(); // returns the next sequence number that should be scheduled for downloaś
 
   virtual bool
   AreAllSeqReceived();
+
+  virtual void
+  CreateTimeoutEvent(uint32_t seqNo, uint32_t timeout);
+
+  virtual void
+  CheckSeqForTimeout(uint32_t seqNo);
 
 
   EventId m_sendEvent; ///< @brief EventId of pending "send packet" event
@@ -123,6 +131,7 @@ protected:
 
 
   std::vector<SequenceStatus> m_sequenceStatus;
+  std::map<uint32_t,EventId> m_chunkTimeoutEvents;
 
 
 protected:

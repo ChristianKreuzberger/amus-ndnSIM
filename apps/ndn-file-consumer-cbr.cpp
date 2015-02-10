@@ -94,6 +94,8 @@ FileConsumerCbr::StartApplication()
 {
   FileConsumer::StartApplication();
   m_inFlight = 0;
+
+  packets_received = packets_sent = packets_timeout = 0;
 }
 
 void
@@ -119,7 +121,7 @@ FileConsumerCbr::ScheduleNextSendEvent(unsigned int miliseconds)
 {
   NS_LOG_FUNCTION(this << miliseconds);
   // Schedule Next Send Event Now
-  m_sendEvent = Simulator::Schedule(Seconds(miliseconds/1000.0), &FileConsumerCbr::SendPacket, this);
+  m_sendEvent = Simulator::Schedule(Seconds((double)miliseconds/1000.0), &FileConsumerCbr::SendPacket, this);
 }
 
 
@@ -138,6 +140,7 @@ FileConsumerCbr::OnData(shared_ptr<const Data> data)
 {
   NS_LOG_FUNCTION(this);
   m_inFlight--;
+  packets_received++;
   FileConsumer::OnData(data);
 }
 
@@ -149,10 +152,12 @@ FileConsumerCbr::SendPacket()
 {
   NS_LOG_FUNCTION(this);
   NS_LOG_DEBUG("m_inFlight=" << m_inFlight << ", m_windowSize=" << m_windowSize);
+  NS_LOG_DEBUG("Packets_Sent=" << packets_sent << ", packets_Recv=" << packets_received << ", packets_Timeout=" << packets_timeout);
   bool okay = false;
   if (m_inFlight < m_windowSize)
   {
     okay = FileConsumer::SendPacket();
+    packets_sent++;
     m_inFlight++;
   }
 
@@ -171,6 +176,15 @@ FileConsumerCbr::SendPacket()
 
 
   return okay;
+}
+
+
+
+void
+FileConsumerCbr::OnTimeout(uint32_t seqNo)
+{
+  m_inFlight--;
+  packets_timeout++;
 }
 
 
