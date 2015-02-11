@@ -106,6 +106,12 @@ FileConsumer::StartApplication() // Called at time specified by Start
   m_lastSeqNoReceived = -1;
   m_sequenceStatus.clear();
 
+  DeviationRTT = 1000.0;
+  EstimatedRTT = 1.0;
+
+
+  m_packetsReceived = m_packetsSent = m_packetsTimeout = 0;
+
   if (!m_outFile.empty())
   {
     // create outfile
@@ -120,7 +126,7 @@ FileConsumer::StartApplication() // Called at time specified by Start
 
   m_downloadStartedTrace(this, _shared_interestName);
 
-  // Start requester - schedule "SendPacket" method
+  // Start requester - schedule "SendPacket" method immediately (this will request the file manifest)
   ScheduleNextSendEvent();
 }
 
@@ -148,13 +154,27 @@ FileConsumer::SendPacket()
 
   NS_LOG_FUNCTION_NOARGS();
 
+  bool okay = false;
+
   // did we request or receive the manifest yet?
-  if (!m_hasReceivedManifest && !m_hasRequestedManifest)
-    return SendManifestPacket();
+  if (!m_hasReceivedManifest)
+    okay = SendManifestPacket();
   else // if we did, then we can start streaming
-    return SendFilePacket();
+    okay = SendFilePacket();
+
+  if (okay)
+    AfterSendPacket();
+
+  return okay;
 }
 
+
+
+void
+FileConsumer::AfterSendPacket()
+{
+    m_packetsSent++;
+}
 
 ///////////////////////////////////////////////////
 //          Process outgoing packets             //
@@ -175,12 +195,14 @@ FileConsumer::SendManifestPacket()
 
   // create an interest, set nonce
   shared_ptr<Interest> interest = make_shared<Interest>();
-  interest->setNonce(m_rand.GetValue());
+  interest->setNonce(m_rand.GetValue()*1000);
   interest->setName(*interestNameWithManifest);
 
   // set the interest lifetime
   time::milliseconds interestLifeTime(m_interestLifeTime.GetMilliSeconds());
   interest->setInterestLifetime(interestLifeTime);
+
+  CreateTimeoutEvent(0, m_interestLifeTime.GetMilliSeconds());
 
   // log that we created the interest
   NS_LOG_INFO("> Creating INTEREST for " << interest->getName());
@@ -213,8 +235,10 @@ FileConsumer::SendFilePacket()
   NS_LOG_FUNCTION_NOARGS();
 
 
+  long timeout = 1.0 * EstimatedRTT + 4.0 * DeviationRTT; // , where u = 1 and q = 4
 
-  m_interestLifeTime = ns3::Time::FromDouble(averageTimeout, ns3::Time::MS);
+
+  m_interestLifeTime = ns3::Time::FromDouble(timeout, ns3::Time::MS);
 
   shared_ptr<Name> nameWithSequence = make_shared<Name>(m_interestName);
 
@@ -297,20 +321,24 @@ FileConsumer::CreateTimeoutEvent(uint32_t seqNo, uint32_t timeout)
 void
 FileConsumer::CheckSeqForTimeout(uint32_t seqNo)
 {
-  if (seqNo == 986)
+  if (m_hasReceivedManifest == false && seqNo == 0)
   {
-    NS_LOG_UNCOND("CheckSeqForTimeout(986) called");
+    // means this timeout is about the manifest
+    m_hasRequestedManifest = false;
+    m_chunkTimeoutEvents[seqNo].Cancel();
+    SendPacket();
+    return;
   }
+
   if (m_sequenceStatus[seqNo] != Received)
   {
-    if (seqNo == 986)
-    {
-      NS_LOG_UNCOND("986 has timed out");
-    }
-
     m_sequenceStatus[seqNo] = TimedOut;
     NS_LOG_DEBUG("Timeout occured for seq " << seqNo);
     m_chunkTimeoutEvents[seqNo].Cancel();
+
+    m_packetsTimeout++;
+
+
     OnTimeout(seqNo);
   }
 }
@@ -335,6 +363,8 @@ FileConsumer::OnData(shared_ptr<const Data> data)
     return;
 
   App::OnData(data); // tracing inside
+
+  m_packetsReceived++;
 
   // Log some infos
   NS_LOG_FUNCTION(this << data);
@@ -388,6 +418,7 @@ FileConsumer::OnData(shared_ptr<const Data> data)
 
         // Trigger OnManifest
         OnManifest(fileSize);
+        AfterData(true, 0);
       }
 
       return;
@@ -408,9 +439,20 @@ FileConsumer::OnData(shared_ptr<const Data> data)
   NS_LOG_DEBUG("SeqNo: " << seqNo);
   NS_LOG_DEBUG("Contentvaluesize: " << data->getContent().value_size());
   OnFileData(seqNo, data->getContent().value(), data->getContent().value_size());
+  AfterData(false, seqNo);
 }
 
 
+void
+FileConsumer::AfterData(bool manifest, uint32_t seq_nr)
+{
+  if (AreAllSeqReceived())
+  {
+    OnFileReceived(0, 0);
+  } else {
+    ScheduleNextSendEvent();
+  }
+}
 
 
 void
@@ -422,9 +464,6 @@ FileConsumer::OnManifest(long fileSize)
 
   // call trace source
   m_manifestReceivedTrace(this, _shared_interestName, fileSize);
-
-  // Schedule Next Send Event
-  ScheduleNextSendEvent();
 }
 
 
@@ -441,25 +480,22 @@ FileConsumer::OnFileData(uint32_t seq_nr, const uint8_t* data, unsigned length)
   }
 
 
-  long diff  = Simulator::Now().GetMilliSeconds() - m_sequenceSendTime[seq_nr];
+  long SampleRTT  = Simulator::Now().GetMilliSeconds() - m_sequenceSendTime[seq_nr];
+  long Difference = SampleRTT - EstimatedRTT;
 
-  NS_LOG_UNCOND("RTT for seq " << seq_nr << " was: " << diff << "ms");
+  double d = 0.09;
 
-  averageTimeout = (averageTimeout * 2 + diff)/3;
+  EstimatedRTT = EstimatedRTT + ( d * Difference);
 
+  DeviationRTT = DeviationRTT + d *  (abs(Difference) - DeviationRTT);
 
-  if (AreAllSeqReceived())
-  {
-    OnFileReceived(0, 0);
-  } else {
-    ScheduleNextSendEvent();
-  }
 }
 
 void
 FileConsumer::ScheduleNextSendEvent(double miliseconds)
 {
   NS_LOG_FUNCTION(this << miliseconds);
+  m_sendEvent.Cancel();
   // Schedule Next Send Event Now
   m_sendEvent = Simulator::Schedule(NanoSeconds(miliseconds*1000000.0), &FileConsumer::SendPacket, this);
 }

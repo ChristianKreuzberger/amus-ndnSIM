@@ -50,24 +50,18 @@ public:
   StartApplication();
 
 
+  enum CongestionWindowPhase { SlowStart = 0, AdditiveIncrease = 1, MultiplicativeDecrease = 2 };
+
+
 protected:
-  virtual void
-  OnFileData(uint32_t seq_nr, const uint8_t* data, unsigned length);
-
-  virtual void
-  OnFileReceived(unsigned status, unsigned length);
-
-  virtual void
-  ScheduleNextSendEvent(double miliseconds=0);
-
   virtual bool
   SendPacket();
 
   virtual void
-  OnData(shared_ptr<const Data> data);
+  OnTimeout(uint32_t seqNo);
 
   virtual void
-  OnTimeout(uint32_t seqNo);
+  AfterData(bool manifest, uint32_t seq_nr);
 
 
   virtual void
@@ -76,26 +70,33 @@ protected:
   virtual void
   DecrementWindow();
 
+  virtual uint32_t
+  GetMaxConSeqNo();
 
-  unsigned int m_windowSize;
+
+  double m_windowSize;
   unsigned int m_maxWindowSize;
   unsigned int m_windowThreshold;
   unsigned int m_inFlight;
 
 
+
+  unsigned int m_lastWindowSize;
+
+
   uint32_t lastSeqNoRecv;
-  bool m_wrongSeqOrder;
+  uint32_t preLastSeqNoRecv;
+  bool m_hadWrongSeqOrder;
+  bool m_hadTimeout;
 
 
   unsigned int received_packets_during_this_window;
   unsigned int timeouts_during_this_window;
 
-  unsigned int packets_sent;
-  unsigned int packets_received;
-  unsigned int packets_timeout;
 
 
 
+  CongestionWindowPhase m_cwndPhase;
 
 
 

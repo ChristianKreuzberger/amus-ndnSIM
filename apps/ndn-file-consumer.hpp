@@ -78,6 +78,9 @@ protected:
   OnFileData(uint32_t seq_nr, const uint8_t* data, unsigned length);
 
   virtual void
+  AfterData(bool manifest, uint32_t seq_nr); // triggered AFTER OnFileData and AFTER Manifest
+
+  virtual void
   OnFileReceived(unsigned status, unsigned length);
 
   virtual void
@@ -85,6 +88,9 @@ protected:
 
   virtual void
   ScheduleNextSendEvent(double miliseconds=0);
+
+  virtual void
+  AfterSendPacket();
 
   virtual bool
   SendPacket();
@@ -135,9 +141,12 @@ protected:
   std::map<uint32_t,long> m_sequenceSendTime;
 
 
-    double averageTimeout;
+  double EstimatedRTT;
+  double DeviationRTT;
 
-
+  unsigned int m_packetsSent;
+  unsigned int m_packetsReceived;
+  unsigned int m_packetsTimeout;
 
 
 protected:
