@@ -93,35 +93,28 @@ void
 FileConsumerCbr::StartApplication()
 {
   FileConsumer::StartApplication();
-  m_inFlight = 0;
 
-  packets_received = packets_sent = packets_timeout = 0;
+  m_inFlight = 0;
 }
 
+
+
 void
-FileConsumerCbr::OnFileData(uint32_t seq_nr, const uint8_t* data, unsigned length)
+FileConsumerCbr::AfterData(bool manifest, bool timeout, uint32_t seq_nr)
 {
-  NS_LOG_FUNCTION(this << seq_nr << length);
-  // write outfile if defined
-  if (!m_outFile.empty())
-  {
-    FILE * fp = fopen(m_outFile.c_str(), "ab");
-    fwrite(data, sizeof(uint8_t), length, fp);
-    fclose(fp);
-  }
+  NS_LOG_FUNCTION(this << manifest << timeout << seq_nr);
+  m_inFlight--;
 
   if (AreAllSeqReceived())
   {
     OnFileReceived(0, 0);
   }
-}
 
-void
-FileConsumerCbr::ScheduleNextSendEvent(double miliseconds)
-{
-  NS_LOG_FUNCTION(this << miliseconds);
-  // Schedule Next Send Event Now
-  m_sendEvent = Simulator::Schedule(NanoSeconds(miliseconds*1000000.0), &FileConsumerCbr::SendPacket, this);
+  // if we just received the manifest, let's start sending out packets
+  if (manifest)
+  {
+    SendPacket();
+  }
 }
 
 
@@ -131,17 +124,7 @@ FileConsumerCbr::OnFileReceived(unsigned status, unsigned length)
   NS_LOG_FUNCTION(this);
   FileConsumer::OnFileReceived(status, length);
   // TODO: Stop Event Loop
-}
-
-
-
-void
-FileConsumerCbr::OnData(shared_ptr<const Data> data)
-{
-  NS_LOG_FUNCTION(this);
-  m_inFlight--;
-  packets_received++;
-  FileConsumer::OnData(data);
+  Simulator::Cancel(m_sendEvent);
 }
 
 
@@ -150,19 +133,15 @@ FileConsumerCbr::OnData(shared_ptr<const Data> data)
 bool
 FileConsumerCbr::SendPacket()
 {
-  NS_LOG_FUNCTION(this);
-  NS_LOG_DEBUG("m_inFlight=" << m_inFlight << ", m_windowSize=" << m_windowSize);
-  NS_LOG_DEBUG("Packets_Sent=" << packets_sent << ", packets_Recv=" << packets_received << ", packets_Timeout=" << packets_timeout);
-  bool okay = false;
-  if (m_inFlight < m_windowSize)
+  bool okay = FileConsumer::SendPacket();
+
+  if (okay)
   {
-    okay = FileConsumer::SendPacket();
-    packets_sent++;
     m_inFlight++;
   }
 
 
-  if (this->m_fileSize > 0)
+  if (m_hasReceivedManifest && this->m_fileSize > 0)
   {
     if (AreAllSeqReceived())
     {
@@ -174,18 +153,10 @@ FileConsumerCbr::SendPacket()
     }
   }
 
-
   return okay;
 }
 
 
-
-void
-FileConsumerCbr::OnTimeout(uint32_t seqNo)
-{
-  m_inFlight--;
-  packets_timeout++;
-}
 
 
 } // namespace ndn

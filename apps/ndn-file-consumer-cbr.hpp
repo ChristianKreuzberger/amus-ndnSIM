@@ -52,31 +52,17 @@ public:
 
 protected:
   virtual void
-  OnFileData(uint32_t seq_nr, const uint8_t* data, unsigned length);
-
-  virtual void
   OnFileReceived(unsigned status, unsigned length);
-
-  virtual void
-  ScheduleNextSendEvent(double miliseconds=0);
 
   virtual bool
   SendPacket();
 
   virtual void
-  OnData(shared_ptr<const Data> data);
-
-  virtual void
-  OnTimeout(uint32_t seqNo);
+  AfterData(bool manifest, bool timeout, uint32_t seq_nr);
 
 
   unsigned int m_windowSize;
   unsigned int m_inFlight;
-
-
-  unsigned int packets_sent;
-  unsigned int packets_received;
-  unsigned int packets_timeout;
 
 
 };

@@ -78,7 +78,7 @@ protected:
   OnFileData(uint32_t seq_nr, const uint8_t* data, unsigned length);
 
   virtual void
-  AfterData(bool manifest, uint32_t seq_nr); // triggered AFTER OnFileData and AFTER Manifest
+  AfterData(bool manifest, bool timeout, uint32_t seq_nr); // triggered AFTER OnFileData and AFTER Manifest
 
   virtual void
   OnFileReceived(unsigned status, unsigned length);
@@ -123,6 +123,7 @@ protected:
 
   bool m_hasRequestedManifest;
   bool m_hasReceivedManifest;
+  bool m_finishedDownloadingFile;
 
 
   std::string m_outFile;
@@ -140,6 +141,8 @@ protected:
   std::map<uint32_t,EventId> m_chunkTimeoutEvents;
   std::map<uint32_t,long> m_sequenceSendTime;
 
+  long m_manifestRequestTime;
+
 
   double EstimatedRTT;
   double DeviationRTT;
@@ -149,11 +152,18 @@ protected:
   unsigned int m_packetsTimeout;
 
 
-protected:
+  void PacketStatsUpdateEvent();
+  EventId m_packetStatsUpdateEvent;
+
+
+protected: // callbacks
   TracedCallback<Ptr<ns3::ndn::App> /* app */, shared_ptr<const Name> /* interestName */> m_downloadStartedTrace;
   TracedCallback<Ptr<ns3::ndn::App> /* app */, shared_ptr<const Name> /* interestName */, long /*fileSize*/> m_manifestReceivedTrace;
   TracedCallback<Ptr<ns3::ndn::App> /* app */, shared_ptr<const Name> /* interestName */,double /* downloadSpeedInBytesPerSecond */, long /*milliSeconds */> m_downloadFinishedTrace;
-
+  TracedCallback<Ptr<ns3::ndn::App> /* app */, shared_ptr<const Name> /* interestName */,
+            unsigned int /* m_packetsSent */, unsigned int /* m_packetsReceived */, unsigned int /*m_packetsTimedout */,
+            double /* EstimatedRTT */, double /* RTTVariation */
+            > m_currentStatsTrace;
 
 
 private:

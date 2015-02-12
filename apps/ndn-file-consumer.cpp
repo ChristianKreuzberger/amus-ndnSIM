@@ -38,6 +38,11 @@
 #include <math.h>
 
 
+
+#define ALPHA 0.125
+#define BETA 0.25
+
+
 NS_LOG_COMPONENT_DEFINE("ndn.FileConsumer");
 
 namespace ns3 {
@@ -70,6 +75,8 @@ FileConsumer::GetTypeId(void)
                       MakeTraceSourceAccessor(&FileConsumer::m_manifestReceivedTrace))
       .AddTraceSource("FileDownloadStarted", "Trace called every time a download starts",
                       MakeTraceSourceAccessor(&FileConsumer::m_downloadStartedTrace))
+      .AddTraceSource("CurrentPacketStats", "Trace current packets statistics (once per second)",
+                      MakeTraceSourceAccessor(&FileConsumer::m_currentStatsTrace));
     ;
 
   return tid;
@@ -82,6 +89,19 @@ FileConsumer::FileConsumer()
 
 FileConsumer::~FileConsumer()
 {
+}
+
+
+void
+FileConsumer::PacketStatsUpdateEvent()
+{
+
+  m_currentStatsTrace(this, _shared_interestName, m_packetsSent, m_packetsReceived, m_packetsTimeout, EstimatedRTT, DeviationRTT);
+
+  if (!m_active || m_finishedDownloadingFile == true)
+    return;
+
+  m_packetStatsUpdateEvent = Simulator::Schedule(Seconds(1), &FileConsumer::PacketStatsUpdateEvent, this);
 }
 
 ///////////////////////////////////////////////////
@@ -100,14 +120,16 @@ FileConsumer::StartApplication() // Called at time specified by Start
   // initialize variables
   m_hasReceivedManifest = false;
   m_hasRequestedManifest = false;
+  m_finishedDownloadingFile = false;
+
   m_fileSize = 0;
   m_curSeqNo = -1;
   m_maxSeqNo = -1;
   m_lastSeqNoReceived = -1;
   m_sequenceStatus.clear();
 
-  DeviationRTT = 1000.0;
-  EstimatedRTT = 1.0;
+  DeviationRTT = 0.0;
+  EstimatedRTT = 500.0;
 
 
   m_packetsReceived = m_packetsSent = m_packetsTimeout = 0;
@@ -128,6 +150,7 @@ FileConsumer::StartApplication() // Called at time specified by Start
 
   // Start requester - schedule "SendPacket" method immediately (this will request the file manifest)
   ScheduleNextSendEvent();
+  PacketStatsUpdateEvent();
 }
 
 
@@ -139,6 +162,7 @@ FileConsumer::StopApplication() // Called at time specified by Stop
 
   // cancel periodic packet generation
   Simulator::Cancel(m_sendEvent);
+  Simulator::Cancel(m_packetStatsUpdateEvent);
 
   // cleanup base stuff
   App::StopApplication();
@@ -198,10 +222,15 @@ FileConsumer::SendManifestPacket()
   interest->setNonce(m_rand.GetValue()*1000);
   interest->setName(*interestNameWithManifest);
 
+  m_manifestRequestTime = Simulator::Now().GetMilliSeconds();
+
   // set the interest lifetime
+  long timeout = 1.0 * EstimatedRTT + 4.0 * DeviationRTT; // , where u = 1 and q = 4
+
+  m_interestLifeTime = ns3::Time::FromDouble(timeout, ns3::Time::MS);
+
   time::milliseconds interestLifeTime(m_interestLifeTime.GetMilliSeconds());
   interest->setInterestLifetime(interestLifeTime);
-
   CreateTimeoutEvent(0, m_interestLifeTime.GetMilliSeconds());
 
   // log that we created the interest
@@ -235,7 +264,11 @@ FileConsumer::SendFilePacket()
   NS_LOG_FUNCTION_NOARGS();
 
 
-  long timeout = 1.0 * EstimatedRTT + 4.0 * DeviationRTT; // , where u = 1 and q = 4
+  // set the interest lifetime
+  double timeout = 1.0 * EstimatedRTT + 4.0 * DeviationRTT; // , where u = 1 and q = 4
+
+  if (timeout < 10)
+    timeout = 10;
 
 
   m_interestLifeTime = ns3::Time::FromDouble(timeout, ns3::Time::MS);
@@ -312,7 +345,7 @@ FileConsumer::CreateTimeoutEvent(uint32_t seqNo, uint32_t timeout)
   }
 
 
-  m_chunkTimeoutEvents[seqNo] = Simulator::Schedule(MilliSeconds(timeout+25), &FileConsumer::CheckSeqForTimeout, this, seqNo);
+  m_chunkTimeoutEvents[seqNo] = Simulator::Schedule(MilliSeconds(timeout+1), &FileConsumer::CheckSeqForTimeout, this, seqNo);
 }
 
 
@@ -348,6 +381,7 @@ FileConsumer::CheckSeqForTimeout(uint32_t seqNo)
 void
 FileConsumer::OnTimeout(uint32_t seq_nr)
 {
+  AfterData(false, true, seq_nr);
 }
 
 
@@ -417,8 +451,9 @@ FileConsumer::OnData(shared_ptr<const Data> data)
         NS_LOG_DEBUG("Resulting Max Seq Nr = " << m_maxSeqNo);
 
         // Trigger OnManifest
+        m_chunkTimeoutEvents[0].Cancel();
         OnManifest(fileSize);
-        AfterData(true, 0);
+        AfterData(true, false, 0);
       }
 
       return;
@@ -439,12 +474,12 @@ FileConsumer::OnData(shared_ptr<const Data> data)
   NS_LOG_DEBUG("SeqNo: " << seqNo);
   NS_LOG_DEBUG("Contentvaluesize: " << data->getContent().value_size());
   OnFileData(seqNo, data->getContent().value(), data->getContent().value_size());
-  AfterData(false, seqNo);
+  AfterData(false, false, seqNo);
 }
 
 
 void
-FileConsumer::AfterData(bool manifest, uint32_t seq_nr)
+FileConsumer::AfterData(bool manifest, bool timeout, uint32_t seq_nr)
 {
   if (AreAllSeqReceived())
   {
@@ -461,6 +496,13 @@ FileConsumer::OnManifest(long fileSize)
   // reserve elements in sequence status
   m_sequenceStatus.clear();
   m_sequenceStatus.resize(ceil(m_fileSize/m_maxPayloadSize)+1);
+
+
+  long SampleRTT  = Simulator::Now().GetMilliSeconds() - m_manifestRequestTime;
+
+
+  EstimatedRTT = SampleRTT;
+  DeviationRTT = SampleRTT / 2;
 
   // call trace source
   m_manifestReceivedTrace(this, _shared_interestName, fileSize);
@@ -481,13 +523,17 @@ FileConsumer::OnFileData(uint32_t seq_nr, const uint8_t* data, unsigned length)
 
 
   long SampleRTT  = Simulator::Now().GetMilliSeconds() - m_sequenceSendTime[seq_nr];
-  long Difference = SampleRTT - EstimatedRTT;
 
-  double d = 0.09;
 
-  EstimatedRTT = EstimatedRTT + ( d * Difference);
+  // 90% of estimated + 10% of measured RTT
+  EstimatedRTT = (1-BETA) * EstimatedRTT + BETA * SampleRTT;
 
-  DeviationRTT = DeviationRTT + d *  (abs(Difference) - DeviationRTT);
+  double absDiff = abs(SampleRTT - EstimatedRTT);
+
+  if (absDiff < 5)
+    absDiff = 5;
+
+  DeviationRTT = (1-ALPHA)* DeviationRTT + ALPHA * absDiff;
 
 }
 
@@ -504,6 +550,10 @@ FileConsumer::ScheduleNextSendEvent(double miliseconds)
 void
 FileConsumer::OnFileReceived(unsigned status, unsigned length)
 {
+  if (m_finishedDownloadingFile)
+    return;
+
+  m_finishedDownloadingFile = true;
   // do nothing here
   NS_LOG_DEBUG("Finally received the whole file!");
 
