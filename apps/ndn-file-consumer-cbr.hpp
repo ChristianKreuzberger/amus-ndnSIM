@@ -45,14 +45,10 @@ public:
   FileConsumerCbr();
   virtual ~FileConsumerCbr();
 
-
   virtual void
   StartApplication();
 
-
 protected:
-  virtual void
-  OnFileReceived(unsigned status, unsigned length);
 
   virtual bool
   SendPacket();

@@ -95,7 +95,6 @@ FileConsumer::~FileConsumer()
 void
 FileConsumer::PacketStatsUpdateEvent()
 {
-
   m_currentStatsTrace(this, _shared_interestName, m_packetsSent, m_packetsReceived, m_packetsTimeout, EstimatedRTT, DeviationRTT);
 
   if (!m_active || m_finishedDownloadingFile == true)
@@ -381,6 +380,14 @@ FileConsumer::CheckSeqForTimeout(uint32_t seqNo)
 void
 FileConsumer::OnTimeout(uint32_t seq_nr)
 {
+  /*
+  EstimatedRTT = EstimatedRTT * 2;
+  if (EstimatedRTT > MAX_RTT)
+    EstimatedRTT = MAX_RTT;
+  DeviationRTT = DeviationRTT * 2;
+  if (DeviationRTT > 500)
+    DeviationRTT = 500;
+  */
   AfterData(false, true, seq_nr);
 }
 
@@ -541,6 +548,10 @@ void
 FileConsumer::ScheduleNextSendEvent(double miliseconds)
 {
   NS_LOG_FUNCTION(this << miliseconds);
+
+  //NS_LOG_UNCOND("Curtime: " << Simulator::Now().GetMilliSeconds());
+  //NS_LOG_UNCOND("Event TS: " << m_sendEvent.GetTs());
+
   m_sendEvent.Cancel();
   // Schedule Next Send Event Now
   m_sendEvent = Simulator::Schedule(NanoSeconds(miliseconds*1000000.0), &FileConsumer::SendPacket, this);
@@ -550,6 +561,9 @@ FileConsumer::ScheduleNextSendEvent(double miliseconds)
 void
 FileConsumer::OnFileReceived(unsigned status, unsigned length)
 {
+    // TODO: Stop Event Loop
+  Simulator::Cancel(m_sendEvent);
+
   if (m_finishedDownloadingFile)
     return;
 

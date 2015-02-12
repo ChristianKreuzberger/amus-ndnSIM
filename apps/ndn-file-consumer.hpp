@@ -35,6 +35,9 @@
 #include "ns3/ptr.h"
 #include "ns3/simple-ref-count.h"
 
+
+#define MAX_RTT 1000.0
+
 namespace ns3 {
 namespace ndn {
 

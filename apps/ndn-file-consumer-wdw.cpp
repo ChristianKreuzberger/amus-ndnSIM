@@ -71,13 +71,54 @@ FileConsumerWdw::~FileConsumerWdw()
 }
 
 
+
+uint32_t
+FileConsumerWdw::IncreaseCounter()
+{
+  m_counter++;
+  m_counter = m_counter % LAST_SEQ_WINDOW_SIZE;
+}
+
+
+unsigned int
+FileConsumerWdw::CountDuplicateAcks()
+{
+  uint32_t curSeqNo = m_lastSeqRecvArray[m_counter];
+
+  int duplicateAckCnt = 0;
+
+  for (int i = 1; i < LAST_SEQ_WINDOW_SIZE; i++)
+  {
+    uint32_t thisSeqNo = m_lastSeqRecvArray[(m_counter -  i + LAST_SEQ_WINDOW_SIZE) % LAST_SEQ_WINDOW_SIZE];
+
+    if (thisSeqNo == curSeqNo)
+    {
+      duplicateAckCnt++;
+    } else
+    {
+      return duplicateAckCnt;
+    }
+
+  }
+  return duplicateAckCnt;
+}
+
+
 void
 FileConsumerWdw::StartApplication()
 {
   FileConsumer::StartApplication();
   m_inFlight = 0;
-  m_windowSize = m_lastWindowSize = 1;
-  m_windowThreshold = 1000000;
+  m_windowSize = m_lastWindowSize = 4;
+  m_cwndSSThresh = 1000000;
+  m_counter = 0;
+
+
+  ignoreTimeoutsCounter = 0;
+
+
+  // that is what we start with
+  m_cwndPhase = SlowStart;
 
   //averageTimeout = 1000;
 
@@ -93,27 +134,33 @@ FileConsumerWdw::StartApplication()
 void
 FileConsumerWdw::IncrementWindow()
 {
-  if (m_windowSize < m_windowThreshold)
+  if (m_windowSize < m_cwndSSThresh)
   {
-    m_windowSize = m_windowSize * 2;
-
-    if (m_windowSize > m_windowThreshold)
-    {
-      m_windowSize = m_windowThreshold;
-    }
-
+    m_windowSize++;
     m_cwndPhase = SlowStart;
   } else
   {
-    m_windowSize = m_windowSize + 1;
+    m_windowSize = m_windowSize + 1.0 / m_windowSize;
     m_cwndPhase = AdditiveIncrease;
   }
+
+  if (m_windowSize > 83)
+    m_windowSize = 83;
 }
 
 
 void
 FileConsumerWdw::DecrementWindow()
 {
+  m_windowSize = m_windowSize * 3.0/4.0;
+
+  m_cwndPhase = MultiplicativeDecrease;
+
+  // make sure that we can not get a "too small" window size
+  if (m_windowSize < 4)
+    m_windowSize = 4;
+
+  m_cwndSSThresh = m_windowSize;
 }
 
 
@@ -123,9 +170,10 @@ FileConsumerWdw::GetMaxConSeqNo()
   uint32_t seqNo = 0;
 
   for ( auto &seqStatus : m_sequenceStatus ) {
+    // find the first sequence which has not been received
     if (seqStatus != Received )
     {
-      return seqNo;
+      return seqNo - 1;
     }
     seqNo++;
   }
@@ -136,138 +184,60 @@ FileConsumerWdw::GetMaxConSeqNo()
 
 
 void
-FileConsumerWdw::AfterData(bool manifest, uint32_t seq_nr)
+FileConsumerWdw::UpdateCwndSSThresh()
 {
-  NS_LOG_FUNCTION(this << manifest << seq_nr);
+  m_cwndSSThresh = m_windowSize * 3.0/4.0;
+  if (m_cwndSSThresh < 4)
+    m_cwndSSThresh = 4;
 
-  m_inFlight--;
-  received_packets_during_this_window++;
+  NS_LOG_DEBUG("New SS Threshold: " << m_cwndSSThresh);
+}
 
-  if (m_fileSize > 0 && AreAllSeqReceived())
+
+
+void
+FileConsumerWdw::AfterData(bool manifest, bool timeout, uint32_t seq_nr)
+{
+  if (timeout && m_cwndPhase != MultiplicativeDecrease && ignoreTimeoutsCounter == 0)
   {
-    OnFileReceived(0,0);
-    return;
+    // we got a timeout, make sure that we "ignore" the next window_size timeouts for the next timeout
+    ignoreTimeoutsCounter = m_windowSize; // this is how many timeouts we expect, based on the current timeout
+
+    //NS_LOG_UNCOND("Timeout, cwnd was " << m_windowSize);
+
+    DecrementWindow();
+
+    EstimatedRTT = EstimatedRTT * 2;
+    if (EstimatedRTT > 500)
+      EstimatedRTT = 500;
+
+    // we need to back off, rescheduling the next send event
+    ScheduleNextSendEvent(WINDOW_TIMER / m_windowSize);
   }
 
-  uint32_t tmp1 = GetMaxConSeqNo();
-
-  if (manifest == false && seq_nr != 0 && lastSeqNoRecv != 0)
+  if (ignoreTimeoutsCounter > 0)
   {
-    // check for lost packets
-    if (tmp1 == lastSeqNoRecv)
-    {
-      if (tmp1 != preLastSeqNoRecv)
-      {
-        m_hadWrongSeqOrder = true;
-        NS_LOG_DEBUG("Found wrong seq order --> switching to MD mode");
-        // either we lost a packet or this comes from a retransmission
-        // ask for retransmission of tmp1
-        m_sequenceStatus[tmp1+1] = TimedOut;
-
-        // found wrong sequence order, immediately move to MultiplicativeDecrease Phase
-        m_cwndPhase = MultiplicativeDecrease;
-      } else
-      {
-        // transfer is still working, go back to additive increase
-        m_cwndPhase = AdditiveIncrease;
-      }
-    } else // tmp1 != lastSeqNoRecv
-    {
-      // tmp1 should be lastSeqNoRecv+1
-      // if not, we fixed a packet, which is good too
-      if (tmp1 != lastSeqNoRecv+1)
-      {
-        if (m_cwndPhase == MultiplicativeDecrease)
-          m_cwndPhase = AdditiveIncrease;
-      }
-    }
-  }
-
-  // is this window done?
-  if ((received_packets_during_this_window+timeouts_during_this_window) >= m_lastWindowSize)
-  {
-    NS_LOG_DEBUG("RTT done - lastWindowSize = " << m_lastWindowSize);
-    NS_LOG_DEBUG("Packets_Sent=" << m_packetsSent << ", packets_Recv=" << m_packetsReceived << ", packets_Timeout=" << m_packetsTimeout);
-    // we got all packets from this window
-    if (!m_hadTimeout && !m_hadWrongSeqOrder)
-    {
-      // and we did not have a timeout or a wrong sequence order --> good
-      // means we can grow the congestion window - but by how much?
-      IncrementWindow();
-      NS_LOG_DEBUG("Incremented Window to " << m_windowSize);
-    } else
-    {
-      // had a timeout or a wrong seq order --> set threshold new
-      m_cwndPhase = MultiplicativeDecrease;
-      m_windowThreshold = m_windowSize / 2;
-      m_windowSize = m_windowSize / 2;
-      NS_LOG_DEBUG("Decremented Window to " << m_windowSize);
-    }
-
-    if (m_windowSize < 1)
-      m_windowSize = 1;
-
-    m_lastWindowSize = m_windowSize;
-
-    received_packets_during_this_window = 0;
-    timeouts_during_this_window = 0;
-    m_hadTimeout = false;
-    m_hadWrongSeqOrder = false;
+    ignoreTimeoutsCounter--;
   }
 
 
-  if (manifest == false)
-  {
-    preLastSeqNoRecv = lastSeqNoRecv;
-    lastSeqNoRecv = tmp1;
-  }
-
-
-
-
-
-
-  if (AreAllSeqReceived())
+  if (!timeout && AreAllSeqReceived())
   {
     OnFileReceived(0, 0);
-    return;
   }
 
-
-
-
-
-  if (m_cwndPhase == SlowStart)
+  if (!timeout)
   {
-    NS_LOG_DEBUG("Slow_start SendPacket()x2, cwnd= " << m_windowSize);
+    // when ignoreTimeoutsCounter > 0, then we did get a packet that we didn't expect
+    IncrementWindow();
 
-    // send two packets
-    if (SendPacket())
+    if (m_cwndPhase == SlowStart)
+    {
+      // Put some pressure on the network - in addition to the scheduled packets
       SendPacket();
-  } else if (m_cwndPhase == AdditiveIncrease)
-  {
-    // send one packet, or send two packets at the end of cwnd
-    if (received_packets_during_this_window+timeouts_during_this_window >= m_lastWindowSize-1)
+    } else if (m_cwndPhase == AdditiveIncrease)
     {
-      NS_LOG_DEBUG("add_incre SendPacket(): 1+1, cwnd= " << m_windowSize);
-
-      SendPacket();
-    } else
-    {
-      NS_LOG_DEBUG("add_incre SendPacket(): 1  , cwnd= " << m_windowSize);
-    }
-    SendPacket();
-  } else if (m_cwndPhase == MultiplicativeDecrease)
-  {
-    NS_LOG_DEBUG("Mult-Decr, total packets == " << (received_packets_during_this_window+timeouts_during_this_window));
-    // send a packet only for two packets that arrive
-    if ((received_packets_during_this_window+timeouts_during_this_window) % 2 == 0)
-    {
-      NS_LOG_DEBUG("mult_decr SendPacket(): 1/2, cwnd= " << m_windowSize);
-      SendPacket();
-    } else
-    {
-      NS_LOG_DEBUG("mult_decr SendPacket(): NONE, cwnd= " << m_windowSize);
+      ScheduleNextSendEvent(WINDOW_TIMER / m_windowSize);
     }
   }
 }
@@ -285,16 +255,21 @@ FileConsumerWdw::SendPacket()
   bool okay = false;
 
   okay = FileConsumer::SendPacket();
-  m_inFlight++;
 
-  NS_LOG_DEBUG("After SendPacket - return was " << okay);
-
-  if (!okay)
+  if (okay)
   {
-    // schedule next event anyway
-    ScheduleNextSendEvent((1000.0 / (double)(m_windowSize)));
+    m_inFlight++;
   }
 
+  if (!m_finishedDownloadingFile)
+  {
+    // schedule next send
+    ScheduleNextSendEvent(WINDOW_TIMER / m_windowSize);
+  }
+  else
+  {
+    NS_LOG_UNCOND("Finished...");
+  }
 
   return okay;
 }
@@ -304,16 +279,13 @@ FileConsumerWdw::SendPacket()
 void
 FileConsumerWdw::OnTimeout(uint32_t seqNo)
 {
-  NS_LOG_DEBUG("Timeout for seq " << seqNo);
   timeouts_during_this_window++;
   m_hadTimeout= true;
-  m_inFlight--;
 
-  m_cwndPhase = MultiplicativeDecrease;
 
-  //m_cwndPhase = MultiplicativeDecrease;
-  received_packets_during_this_window--;
-  AfterData(true, 0);
+
+  // will trigger AfterData(false, true,seqNo)
+  FileConsumer::OnTimeout(seqNo);
 }
 
 

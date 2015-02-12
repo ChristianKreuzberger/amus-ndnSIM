@@ -17,14 +17,23 @@
  * ndnSIM, e.g., in COPYING.md file.  If not, see <http://www.gnu.org/licenses/>.
  **/
 
-#ifndef NDN_FILECONSUMER_CBR_H
-#define NDN_FILECONSUMER_CBR_H
+#ifndef NDN_FILECONSUMER_WDW_H
+#define NDN_FILECONSUMER_WDW_H
 
 
 #include "ndn-file-consumer.hpp"
 
+
+
+#define LAST_SEQ_WINDOW_SIZE 10
+#define WINDOW_TIMER 1000.0
+
+
 namespace ns3 {
 namespace ndn {
+
+
+
 
 
 
@@ -50,7 +59,7 @@ public:
   StartApplication();
 
 
-  enum CongestionWindowPhase { SlowStart = 0, AdditiveIncrease = 1, MultiplicativeDecrease = 2 };
+  enum CongestionWindowPhase { SlowStart = 0, AdditiveIncrease = 1, MultiplicativeDecrease = 2, FastRecovery = 3 };
 
 
 protected:
@@ -61,7 +70,7 @@ protected:
   OnTimeout(uint32_t seqNo);
 
   virtual void
-  AfterData(bool manifest, uint32_t seq_nr);
+  AfterData(bool manifest, bool timeout, uint32_t seq_nr);
 
 
   virtual void
@@ -73,11 +82,16 @@ protected:
   virtual uint32_t
   GetMaxConSeqNo();
 
+  virtual void
+  UpdateCwndSSThresh();
+
 
   double m_windowSize;
   unsigned int m_maxWindowSize;
-  unsigned int m_windowThreshold;
+  unsigned int m_cwndSSThresh;
   unsigned int m_inFlight;
+
+  int ignoreTimeoutsCounter;
 
 
 
@@ -88,6 +102,15 @@ protected:
   uint32_t preLastSeqNoRecv;
   bool m_hadWrongSeqOrder;
   bool m_hadTimeout;
+
+
+  uint32_t m_counter;
+  uint32_t m_lastSeqRecvArray[LAST_SEQ_WINDOW_SIZE];
+
+  uint32_t IncreaseCounter();
+
+  unsigned int CountDuplicateAcks();
+
 
 
   unsigned int received_packets_during_this_window;

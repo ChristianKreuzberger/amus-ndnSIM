@@ -56,24 +56,6 @@ FileConsumerCbr::GetTypeId(void)
       .AddAttribute("WindowSize", "The amount of interests that are issued per second", UintegerValue(100),
                     MakeUintegerAccessor(&FileConsumerCbr::m_windowSize),
                     MakeUintegerChecker<uint32_t>())
-      /*
-      .AddAttribute("FileToRequest", "Name of the File to Request", StringValue("/"),
-                    MakeNameAccessor(&FileConsumerCbr::m_interestName), MakeNameChecker())
-      .AddAttribute("LifeTime", "LifeTime for Interests", StringValue("2s"),
-                    MakeTimeAccessor(&FileConsumerCbr::m_interestLifeTime), MakeTimeChecker())
-      .AddAttribute("ManifestPostfix", "The manifest string added after a file", StringValue("/manifest"),
-                    MakeStringAccessor(&FileConsumerCbr::m_manifestPostfix), MakeStringChecker())
-      .AddAttribute("WriteOutfile", "Write the downloaded file to outfile (empty means disabled)", StringValue(""),
-                    MakeStringAccessor(&FileConsumerCbr::m_outFile), MakeStringChecker())
-      .AddAttribute("MaxPayloadSize", "The maximum size of the payload of a data packet", UintegerValue(1400),
-                    MakeUintegerAccessor(&FileConsumerCbr::m_maxPayloadSize),
-                    MakeUintegerChecker<uint32_t>())
-      .AddTraceSource("FileDownloadFinished", "Trace called every time a download finishes",
-                      MakeTraceSourceAccessor(&FileConsumerCbr::m_downloadFinishedTrace))
-      .AddTraceSource("ManifestReceived", "Trace called every time a manifest is received",
-                      MakeTraceSourceAccessor(&FileConsumerCbr::m_manifestReceivedTrace))
-      .AddTraceSource("FileDownloadStarted", "Trace called every time a download starts",
-                      MakeTraceSourceAccessor(&FileConsumerCbr::m_downloadStartedTrace)) */
     ;
 
   return tid;
@@ -110,6 +92,13 @@ FileConsumerCbr::AfterData(bool manifest, bool timeout, uint32_t seq_nr)
     OnFileReceived(0, 0);
   }
 
+  if (timeout)
+  {
+    EstimatedRTT = EstimatedRTT * 2;
+    if (EstimatedRTT > 500)
+      EstimatedRTT = 500;
+  }
+
   // if we just received the manifest, let's start sending out packets
   if (manifest)
   {
@@ -117,15 +106,6 @@ FileConsumerCbr::AfterData(bool manifest, bool timeout, uint32_t seq_nr)
   }
 }
 
-
-void
-FileConsumerCbr::OnFileReceived(unsigned status, unsigned length)
-{
-  NS_LOG_FUNCTION(this);
-  FileConsumer::OnFileReceived(status, length);
-  // TODO: Stop Event Loop
-  Simulator::Cancel(m_sendEvent);
-}
 
 
 
@@ -149,7 +129,7 @@ FileConsumerCbr::SendPacket()
       OnFileReceived(0, 0);
     } else {
       // schedule next event
-      ScheduleNextSendEvent(floor(1000.0 / (double)m_windowSize));
+      ScheduleNextSendEvent(m_rand.GetValue() + 1000.0 / (double)m_windowSize);
     }
   }
 
