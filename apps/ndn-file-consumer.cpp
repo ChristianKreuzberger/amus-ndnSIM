@@ -497,6 +497,26 @@ FileConsumer::AfterData(bool manifest, bool timeout, uint32_t seq_nr)
 }
 
 
+long
+FileConsumer::GetFaceBitrate(uint32_t faceId)
+{
+  Ptr<ns3::PointToPointNetDevice> nd1 = GetNode ()->GetDevice(faceId)->GetObject<ns3::PointToPointNetDevice>();
+  DataRateValue dv;
+  nd1->GetAttribute("DataRate", dv);
+  DataRate d = dv.Get();
+  return d.GetBitRate();
+}
+
+
+uint16_t
+FileConsumer::GetFaceMTU(uint32_t faceId)
+{
+  Ptr<ns3::PointToPointNetDevice> nd1 = GetNode ()->GetDevice(faceId)->GetObject<ns3::PointToPointNetDevice>();
+  return nd1->GetMtu();
+
+}
+
+
 void
 FileConsumer::OnManifest(long fileSize)
 {
@@ -555,6 +575,8 @@ FileConsumer::ScheduleNextSendEvent(double miliseconds)
   m_sendEvent.Cancel();
   // Schedule Next Send Event Now
   m_sendEvent = Simulator::Schedule(NanoSeconds(miliseconds*1000000.0), &FileConsumer::SendPacket, this);
+
+  m_nextEventScheduleTime = Simulator::Now().GetMilliSeconds() + miliseconds;
 }
 
 

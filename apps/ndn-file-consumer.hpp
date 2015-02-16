@@ -35,6 +35,9 @@
 #include "ns3/ptr.h"
 #include "ns3/simple-ref-count.h"
 
+#include "ns3/point-to-point-module.h"
+
+
 
 #define MAX_RTT 1000.0
 
@@ -117,7 +120,15 @@ protected:
   CheckSeqForTimeout(uint32_t seqNo);
 
 
+  long
+  GetFaceBitrate(uint32_t faceId);
+
+  uint16_t
+  GetFaceMTU(uint32_t faceId);
+
+
   EventId m_sendEvent; ///< @brief EventId of pending "send packet" event
+  long m_nextEventScheduleTime;
   Name m_interestName;     ///< \brief NDN Name of the Interest (use Name)
   Time m_interestLifeTime; ///< \brief LifeTime for interest packet
 
