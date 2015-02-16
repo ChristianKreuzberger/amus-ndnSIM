@@ -101,13 +101,15 @@ FileConsumerWdw::StartApplication()
 void
 FileConsumerWdw::IncrementWindow()
 {
+  double incrementRatio = 1000.0 / (EstimatedRTT);
+
   if (m_windowSize < m_cwndSSThresh)
   {
-    m_windowSize++;
+    m_windowSize+= incrementRatio*2;
     m_cwndPhase = SlowStart;
   } else
   {
-    m_windowSize = m_windowSize + 1.0 / m_windowSize;
+    m_windowSize = m_windowSize + incrementRatio / m_windowSize;
     m_cwndPhase = AdditiveIncrease;
   }
 
@@ -120,7 +122,7 @@ FileConsumerWdw::IncrementWindow()
 void
 FileConsumerWdw::DecrementWindow()
 {
-  m_windowSize = m_windowSize * 3.0/4.0;
+  m_windowSize = m_windowSize / 2.0;
 
   m_cwndPhase = MultiplicativeDecrease;
 
@@ -169,11 +171,7 @@ FileConsumerWdw::AfterData(bool manifest, bool timeout, uint32_t seq_nr)
     // when ignoreTimeoutsCounter > 0, then we did get a packet that we didn't expect
     IncrementWindow();
 
-    if (m_cwndPhase == SlowStart)
-    {
-      // Put some pressure on the network - in addition to the scheduled packets
-      SendPacket();
-    } else if (m_cwndPhase == AdditiveIncrease)
+    if (m_nextEventScheduleTime > Simulator::Now().GetMilliSeconds() + WINDOW_TIMER / m_windowSize)
     {
       ScheduleNextSendEvent(WINDOW_TIMER / m_windowSize);
     }
