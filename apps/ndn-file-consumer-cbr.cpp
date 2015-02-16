@@ -53,7 +53,7 @@ FileConsumerCbr::GetTypeId(void)
       .SetGroupName("Ndn")
       .SetParent<FileConsumer>()
       .AddConstructor<FileConsumerCbr>()
-      .AddAttribute("WindowSize", "The amount of interests that are issued per second", UintegerValue(100),
+      .AddAttribute("WindowSize", "The amount of interests that are issued per second (0 = automatically determine maximum)", UintegerValue(0),
                     MakeUintegerAccessor(&FileConsumerCbr::m_windowSize),
                     MakeUintegerChecker<uint32_t>())
     ;
@@ -75,6 +75,17 @@ void
 FileConsumerCbr::StartApplication()
 {
   FileConsumer::StartApplication();
+
+  if (m_windowSize == 0) // means: determine!
+  {
+    // determine m_clientRecvWindow
+    long bitrate = GetFaceBitrate(0);
+    uint16_t mtu = GetFaceMTU(0);
+    double max_packets_possible = ((double)bitrate / 8.0 ) / (double)mtu;
+    NS_LOG_UNCOND("Bitrate: " << bitrate << ", max_packets: " << max_packets_possible);
+    std::cerr << "Bitrate: " << bitrate << ", max_packets: " << max_packets_possible << std::endl;
+    m_windowSize = floor(max_packets_possible);
+  }
 
   m_inFlight = 0;
 }
@@ -129,7 +140,8 @@ FileConsumerCbr::SendPacket()
       OnFileReceived(0, 0);
     } else {
       // schedule next event
-      ScheduleNextSendEvent(m_rand.GetValue() + 1000.0 / (double)m_windowSize);
+      double rrr = m_rand.GetValue() - 0.5;
+      ScheduleNextSendEvent(rrr + 1000.0 / (double)m_windowSize);
     }
   }
 
