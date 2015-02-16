@@ -67,11 +67,7 @@ protected:
   SendPacket();
 
   virtual void
-  OnTimeout(uint32_t seqNo);
-
-  virtual void
   AfterData(bool manifest, bool timeout, uint32_t seq_nr);
-
 
   virtual void
   IncrementWindow();
@@ -79,14 +75,9 @@ protected:
   virtual void
   DecrementWindow();
 
-  virtual uint32_t
-  GetMaxConSeqNo();
-
-  virtual void
-  UpdateCwndSSThresh();
-
 
   double m_windowSize;
+
   unsigned int m_maxWindowSize;
   unsigned int m_cwndSSThresh;
   unsigned int m_inFlight;
@@ -94,27 +85,6 @@ protected:
   int ignoreTimeoutsCounter;
 
 
-
-  unsigned int m_lastWindowSize;
-
-
-  uint32_t lastSeqNoRecv;
-  uint32_t preLastSeqNoRecv;
-  bool m_hadWrongSeqOrder;
-  bool m_hadTimeout;
-
-
-  uint32_t m_counter;
-  uint32_t m_lastSeqRecvArray[LAST_SEQ_WINDOW_SIZE];
-
-  uint32_t IncreaseCounter();
-
-  unsigned int CountDuplicateAcks();
-
-
-
-  unsigned int received_packets_during_this_window;
-  unsigned int timeouts_during_this_window;
 
 
 

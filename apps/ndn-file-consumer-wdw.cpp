@@ -53,9 +53,6 @@ FileConsumerWdw::GetTypeId(void)
       .SetGroupName("Ndn")
       .SetParent<FileConsumer>()
       .AddConstructor<FileConsumerWdw>()
-      .AddAttribute("MaxWindowSize", "The max. amount of interests that are issued per second", UintegerValue(100),
-                    MakeUintegerAccessor(&FileConsumerWdw::m_maxWindowSize),
-                    MakeUintegerChecker<uint32_t>())
     ;
 
   return tid;
@@ -72,61 +69,31 @@ FileConsumerWdw::~FileConsumerWdw()
 
 
 
-uint32_t
-FileConsumerWdw::IncreaseCounter()
-{
-  m_counter++;
-  m_counter = m_counter % LAST_SEQ_WINDOW_SIZE;
-}
-
-
-unsigned int
-FileConsumerWdw::CountDuplicateAcks()
-{
-  uint32_t curSeqNo = m_lastSeqRecvArray[m_counter];
-
-  int duplicateAckCnt = 0;
-
-  for (int i = 1; i < LAST_SEQ_WINDOW_SIZE; i++)
-  {
-    uint32_t thisSeqNo = m_lastSeqRecvArray[(m_counter -  i + LAST_SEQ_WINDOW_SIZE) % LAST_SEQ_WINDOW_SIZE];
-
-    if (thisSeqNo == curSeqNo)
-    {
-      duplicateAckCnt++;
-    } else
-    {
-      return duplicateAckCnt;
-    }
-
-  }
-  return duplicateAckCnt;
-}
-
-
 void
 FileConsumerWdw::StartApplication()
 {
   FileConsumer::StartApplication();
   m_inFlight = 0;
-  m_windowSize = m_lastWindowSize = 4;
+  m_windowSize =  4;
   m_cwndSSThresh = 1000000;
-  m_counter = 0;
 
 
   ignoreTimeoutsCounter = 0;
 
 
-  // that is what we start with
+  // determine m_clientRecvWindow
+  long bitrate = GetFaceBitrate(0);
+  uint16_t mtu = GetFaceMTU(0);
+  double max_packets_possible = ((double)bitrate / 8.0 ) / (double)mtu;
+  NS_LOG_UNCOND("Bitrate: " << bitrate << ", max_packets: " << max_packets_possible);
+  m_maxWindowSize = floor(max_packets_possible);
+
+
   m_cwndPhase = SlowStart;
 
-  //averageTimeout = 1000;
 
-  received_packets_during_this_window = 0;
-  timeouts_during_this_window = 0;
-  lastSeqNoRecv = 0;
 
-  m_hadWrongSeqOrder = m_hadTimeout = false;
+
 }
 
 
@@ -144,8 +111,9 @@ FileConsumerWdw::IncrementWindow()
     m_cwndPhase = AdditiveIncrease;
   }
 
-  if (m_windowSize > 83)
-    m_windowSize = 83;
+  // make sure that we do not request more than we can request
+  if (m_windowSize > m_maxWindowSize)
+    m_windowSize = m_maxWindowSize;
 }
 
 
@@ -161,36 +129,6 @@ FileConsumerWdw::DecrementWindow()
     m_windowSize = 4;
 
   m_cwndSSThresh = m_windowSize;
-}
-
-
-uint32_t
-FileConsumerWdw::GetMaxConSeqNo()
-{
-  uint32_t seqNo = 0;
-
-  for ( auto &seqStatus : m_sequenceStatus ) {
-    // find the first sequence which has not been received
-    if (seqStatus != Received )
-    {
-      return seqNo - 1;
-    }
-    seqNo++;
-  }
-
-  return seqNo;
-}
-
-
-
-void
-FileConsumerWdw::UpdateCwndSSThresh()
-{
-  m_cwndSSThresh = m_windowSize * 3.0/4.0;
-  if (m_cwndSSThresh < 4)
-    m_cwndSSThresh = 4;
-
-  NS_LOG_DEBUG("New SS Threshold: " << m_cwndSSThresh);
 }
 
 
@@ -275,18 +213,6 @@ FileConsumerWdw::SendPacket()
 }
 
 
-
-void
-FileConsumerWdw::OnTimeout(uint32_t seqNo)
-{
-  timeouts_during_this_window++;
-  m_hadTimeout= true;
-
-
-
-  // will trigger AfterData(false, true,seqNo)
-  FileConsumer::OnTimeout(seqNo);
-}
 
 
 } // namespace ndn
