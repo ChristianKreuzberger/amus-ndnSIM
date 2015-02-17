@@ -57,7 +57,7 @@ protected:
   AfterData(bool manifest, bool timeout, uint32_t seq_nr);
 
 
-  unsigned int m_windowSize;
+  double m_windowSize;
   unsigned int m_inFlight;
 
 

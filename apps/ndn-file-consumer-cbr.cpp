@@ -22,18 +22,8 @@
 #include "ns3/log.h"
 #include "ns3/simulator.h"
 #include "ns3/packet.h"
-#include "ns3/callback.h"
-#include "ns3/string.h"
-#include "ns3/boolean.h"
-#include "ns3/uinteger.h"
-#include "ns3/integer.h"
-#include "ns3/double.h"
 
-#include "utils/ndn-ns3-packet-tag.hpp"
-#include "model/ndn-app-face.hpp"
-#include "utils/ndn-rtt-mean-deviation.hpp"
 
-#include "model/ndn-app-face.hpp"
 
 #include <math.h>
 
@@ -74,11 +64,12 @@ FileConsumerCbr::~FileConsumerCbr()
 void
 FileConsumerCbr::StartApplication()
 {
+  NS_LOG_FUNCTION_NOARGS();
   FileConsumer::StartApplication();
 
   if (m_windowSize == 0) // means: determine!
   {
-    // determine m_clientRecvWindow
+    // determine the window size
     long bitrate = GetFaceBitrate(0);
     uint16_t mtu = GetFaceMTU(0);
     double max_packets_possible = ((double)bitrate / 8.0 ) / (double)mtu;
@@ -98,17 +89,6 @@ FileConsumerCbr::AfterData(bool manifest, bool timeout, uint32_t seq_nr)
   NS_LOG_FUNCTION(this << manifest << timeout << seq_nr);
   m_inFlight--;
 
-  if (AreAllSeqReceived())
-  {
-    OnFileReceived(0, 0);
-  }
-
-  if (timeout)
-  {
-    EstimatedRTT = EstimatedRTT * 2;
-    if (EstimatedRTT > 500)
-      EstimatedRTT = 500;
-  }
 
   // if we just received the manifest, let's start sending out packets
   if (manifest)
@@ -140,7 +120,7 @@ FileConsumerCbr::SendPacket()
       OnFileReceived(0, 0);
     } else {
       // schedule next event
-      double rrr = m_rand.GetValue() - 0.5;
+      double rrr = m_rand.GetValue() - 0.5; // randomize the send-time a little bit
       ScheduleNextSendEvent(rrr + 1000.0 / (double)m_windowSize);
     }
   }

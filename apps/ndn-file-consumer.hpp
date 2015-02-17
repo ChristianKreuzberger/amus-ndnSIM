@@ -37,6 +37,13 @@
 
 #include "ns3/point-to-point-module.h"
 
+#include "ns3/callback.h"
+#include "ns3/string.h"
+#include "ns3/boolean.h"
+#include "ns3/uinteger.h"
+#include "ns3/integer.h"
+#include "ns3/double.h"
+
 
 
 #define MAX_RTT 1000.0
@@ -161,21 +168,28 @@ protected:
   double EstimatedRTT;
   double DeviationRTT;
 
+  unsigned int m_initialRTT;
+  unsigned int m_maxRTT;
+
   unsigned int m_packetsSent;
   unsigned int m_packetsReceived;
   unsigned int m_packetsTimeout;
+  unsigned int m_packetsRetransmitted;
 
 
   void PacketStatsUpdateEvent();
   EventId m_packetStatsUpdateEvent;
 
 
-protected: // callbacks
+protected: // callbacks/traces
   TracedCallback<Ptr<ns3::ndn::App> /* app */, shared_ptr<const Name> /* interestName */> m_downloadStartedTrace;
-  TracedCallback<Ptr<ns3::ndn::App> /* app */, shared_ptr<const Name> /* interestName */, long /*fileSize*/> m_manifestReceivedTrace;
-  TracedCallback<Ptr<ns3::ndn::App> /* app */, shared_ptr<const Name> /* interestName */,double /* downloadSpeedInBytesPerSecond */, long /*milliSeconds */> m_downloadFinishedTrace;
   TracedCallback<Ptr<ns3::ndn::App> /* app */, shared_ptr<const Name> /* interestName */,
-            unsigned int /* m_packetsSent */, unsigned int /* m_packetsReceived */, unsigned int /*m_packetsTimedout */,
+            long /*fileSize*/> m_manifestReceivedTrace;
+  TracedCallback<Ptr<ns3::ndn::App> /* app */, shared_ptr<const Name> /* interestName */,
+            double /* downloadSpeedInBytesPerSecond */, long /*milliSeconds */> m_downloadFinishedTrace;
+  TracedCallback<Ptr<ns3::ndn::App> /* app */, shared_ptr<const Name> /* interestName */,
+            unsigned int /* m_packetsSent */, unsigned int /* m_packetsReceived */,
+            unsigned int /*m_packetsTimedout */, unsigned int /* m_packetsRetransmitted */,
             double /* EstimatedRTT */, double /* RTTVariation */
             > m_currentStatsTrace;
 

@@ -22,18 +22,8 @@
 #include "ns3/log.h"
 #include "ns3/simulator.h"
 #include "ns3/packet.h"
-#include "ns3/callback.h"
-#include "ns3/string.h"
-#include "ns3/boolean.h"
-#include "ns3/uinteger.h"
-#include "ns3/integer.h"
-#include "ns3/double.h"
 
-#include "utils/ndn-ns3-packet-tag.hpp"
-#include "model/ndn-app-face.hpp"
-#include "utils/ndn-rtt-mean-deviation.hpp"
 
-#include "model/ndn-app-face.hpp"
 
 #include <math.h>
 
@@ -51,14 +41,14 @@ FileConsumerWdw::GetTypeId(void)
   static TypeId tid =
     TypeId("ns3::ndn::FileConsumerWdw")
       .SetGroupName("Ndn")
-      .SetParent<FileConsumer>()
+      .SetParent<FileConsumerCbr>()
       .AddConstructor<FileConsumerWdw>()
     ;
 
   return tid;
 }
 
-FileConsumerWdw::FileConsumerWdw() : FileConsumer()
+FileConsumerWdw::FileConsumerWdw() : FileConsumerCbr()
 {
   NS_LOG_FUNCTION_NOARGS();
 }
@@ -72,28 +62,18 @@ FileConsumerWdw::~FileConsumerWdw()
 void
 FileConsumerWdw::StartApplication()
 {
-  FileConsumer::StartApplication();
-  m_inFlight = 0;
-  m_windowSize =  4;
+  NS_LOG_FUNCTION_NOARGS();
+  FileConsumerCbr::StartApplication();
+  // the constructor of FileConsumerCbr should have calculated the maximum window size, so we are going to set it here
+  m_maxWindowSize = m_windowSize;
+
+
   m_cwndSSThresh = 1000000;
 
 
   ignoreTimeoutsCounter = 0;
 
-
-  // determine m_clientRecvWindow
-  long bitrate = GetFaceBitrate(0);
-  uint16_t mtu = GetFaceMTU(0);
-  double max_packets_possible = ((double)bitrate / 8.0 ) / (double)mtu;
-  NS_LOG_UNCOND("Bitrate: " << bitrate << ", max_packets: " << max_packets_possible);
-  m_maxWindowSize = floor(max_packets_possible);
-
-
   m_cwndPhase = SlowStart;
-
-
-
-
 }
 
 
@@ -101,11 +81,12 @@ FileConsumerWdw::StartApplication()
 void
 FileConsumerWdw::IncrementWindow()
 {
+  NS_LOG_FUNCTION_NOARGS();
   double incrementRatio = 1000.0 / (EstimatedRTT);
 
   if (m_windowSize < m_cwndSSThresh)
   {
-    m_windowSize+= incrementRatio*2;
+    m_windowSize+= incrementRatio;
     m_cwndPhase = SlowStart;
   } else
   {
@@ -122,6 +103,7 @@ FileConsumerWdw::IncrementWindow()
 void
 FileConsumerWdw::DecrementWindow()
 {
+  NS_LOG_FUNCTION_NOARGS();
   m_windowSize = m_windowSize / 2.0;
 
   m_cwndPhase = MultiplicativeDecrease;
@@ -147,12 +129,8 @@ FileConsumerWdw::AfterData(bool manifest, bool timeout, uint32_t seq_nr)
 
     DecrementWindow();
 
-    EstimatedRTT = EstimatedRTT * 2;
-    if (EstimatedRTT > 500)
-      EstimatedRTT = 500;
-
     // we need to back off, rescheduling the next send event
-    ScheduleNextSendEvent(WINDOW_TIMER / m_windowSize);
+    ScheduleNextSendEvent(1000.0 / m_windowSize);
   }
 
   if (ignoreTimeoutsCounter > 0)
@@ -161,55 +139,18 @@ FileConsumerWdw::AfterData(bool manifest, bool timeout, uint32_t seq_nr)
   }
 
 
-  if (!timeout && AreAllSeqReceived())
-  {
-    OnFileReceived(0, 0);
-  }
 
   if (!timeout)
   {
     // when ignoreTimeoutsCounter > 0, then we did get a packet that we didn't expect
     IncrementWindow();
 
-    if (m_nextEventScheduleTime > Simulator::Now().GetMilliSeconds() + WINDOW_TIMER / m_windowSize)
+    if (m_nextEventScheduleTime > Simulator::Now().GetMilliSeconds() + 1000.0 / m_windowSize)
     {
-      ScheduleNextSendEvent(WINDOW_TIMER / m_windowSize);
+      ScheduleNextSendEvent(1000.0 / m_windowSize);
     }
   }
 }
-
-
-
-
-
-bool
-FileConsumerWdw::SendPacket()
-{
-  //NS_LOG_FUNCTION(this);
-  //NS_LOG_DEBUG("m_inFlight=" << m_inFlight << ", m_windowSize=" << m_windowSize);
-  //NS_LOG_DEBUG("Packets_Sent=" << m_packetsSent << ", packets_Recv=" << m_packetsReceived << ", packets_Timeout=" << m_packetsTimeout);
-  bool okay = false;
-
-  okay = FileConsumer::SendPacket();
-
-  if (okay)
-  {
-    m_inFlight++;
-  }
-
-  if (!m_finishedDownloadingFile)
-  {
-    // schedule next send
-    ScheduleNextSendEvent(WINDOW_TIMER / m_windowSize);
-  }
-  else
-  {
-    NS_LOG_UNCOND("Finished...");
-  }
-
-  return okay;
-}
-
 
 
 

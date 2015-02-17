@@ -21,12 +21,11 @@
 #define NDN_FILECONSUMER_WDW_H
 
 
-#include "ndn-file-consumer.hpp"
+#include "ndn-file-consumer-cbr.hpp"
 
 
 
 #define LAST_SEQ_WINDOW_SIZE 10
-#define WINDOW_TIMER 1000.0
 
 
 namespace ns3 {
@@ -42,7 +41,7 @@ namespace ndn {
  * @ingroup ndn-apps
  * @brief Ndn application for sending out Interest packets at a "constant" rate (Poisson process)
  */
-class FileConsumerWdw : public FileConsumer {
+class FileConsumerWdw : public FileConsumerCbr {
 public:
   static TypeId
   GetTypeId();
@@ -63,9 +62,6 @@ public:
 
 
 protected:
-  virtual bool
-  SendPacket();
-
   virtual void
   AfterData(bool manifest, bool timeout, uint32_t seq_nr);
 
@@ -76,11 +72,8 @@ protected:
   DecrementWindow();
 
 
-  double m_windowSize;
-
   unsigned int m_maxWindowSize;
   unsigned int m_cwndSSThresh;
-  unsigned int m_inFlight;
 
   int ignoreTimeoutsCounter;
 
