@@ -1,5 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
-/*
+/*  Modified by Christian Kreuzberger for amus-ndnSIM, (c) 2015
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation;
@@ -79,6 +80,12 @@ NDNBriteTopologyHelper::~NDNBriteTopologyHelper ()
     {
       delete m_asLeafNodes.back ();
       m_asLeafNodes.pop_back ();
+    }
+
+  while (!m_asNonLeafNodes.empty ())
+    {
+      delete m_asNonLeafNodes.back ();
+      m_asNonLeafNodes.pop_back ();
     }
 
   while (!m_nodesByAs.empty ())
@@ -268,6 +275,12 @@ NDNBriteTopologyHelper::BuildBriteEdgeInfoList (void)
 }
 
 Ptr<Node>
+NDNBriteTopologyHelper::GetNonLeafNodeForAs (uint32_t asNum, uint32_t nodeNum)
+{
+  return m_asNonLeafNodes[asNum]->Get (nodeNum);
+}
+
+Ptr<Node>
 NDNBriteTopologyHelper::GetLeafNodeForAs (uint32_t asNum, uint32_t leafNum)
 {
   return m_asLeafNodes[asNum]->Get (leafNum);
@@ -277,6 +290,12 @@ Ptr<Node>
 NDNBriteTopologyHelper::GetNodeForAs (uint32_t asNum, uint32_t nodeNum)
 {
   return m_nodesByAs[asNum]->Get (nodeNum);
+}
+
+uint32_t
+NDNBriteTopologyHelper::GetNNonLeafNodesForAs (uint32_t asNum)
+{
+  return m_asNonLeafNodes[asNum]->GetN ();
 }
 
 uint32_t
@@ -421,6 +440,7 @@ NDNBriteTopologyHelper::ConstructTopology ()
   for (uint32_t i = 0; i < m_numAs; ++i)
     {
       m_asLeafNodes.push_back (new NodeContainer ());
+      m_asNonLeafNodes.push_back (new NodeContainer ());
       m_nodesByAs.push_back (new NodeContainer ());
     }
 
@@ -451,6 +471,10 @@ NDNBriteTopologyHelper::ConstructTopology ()
       if ((*it).type == "RT_LEAF ")
         {
           m_asLeafNodes[(*it).asId]->Add (m_nodes.Get ((*it).nodeId));
+        }
+      else
+        {
+          m_asNonLeafNodes[(*it).asId]->Add (m_nodes.Get ((*it).nodeId));
         }
     }
 }

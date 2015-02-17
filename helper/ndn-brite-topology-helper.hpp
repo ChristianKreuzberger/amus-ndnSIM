@@ -121,6 +121,25 @@ public:
   Ptr<Node> GetLeafNodeForAs (uint32_t asNum, uint32_t leafNum);
 
   /**
+   * Returns the number of router non-leaf nodes for a given AS
+   *
+   * \param asNum the AS number
+   * \returns the number of non-leaf nodes in the specified AS
+   *
+   */
+  uint32_t GetNNonLeafNodesForAs (uint32_t asNum);
+
+  /**
+   * Returns a given router non-leaf node from a given AS
+   *
+   * \param asNum the AS number
+   * \param nodeNum the node number
+   * \returns the specified node
+   */
+  Ptr<Node> GetNonLeafNodeForAs (uint32_t asNum, uint32_t nodeNum);
+
+
+  /**
    * Returns the total number of nodes for a given AS
    *
    * \param asNum the AS number
@@ -252,6 +271,9 @@ private:
 
   /// stores the leaf router nodes for each AS
   std::vector<NodeContainer*> m_asLeafNodes;
+
+  /// stores all non leaf router nodes for each AS
+  std::vector<NodeContainer*> m_asNonLeafNodes;
 
   /// stores all of the nodes in the brite topology by AS number
   std::vector<NodeContainer*> m_nodesByAs;
