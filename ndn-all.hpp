@@ -33,6 +33,8 @@
 #include "ns3/ndnSIM/utils/tracers/ndn-app-delay-tracer.hpp"
 #include "ns3/ndnSIM/utils/tracers/ndn-cs-tracer.hpp"
 #include "ns3/ndnSIM/utils/tracers/ndn-l3-rate-tracer.hpp"
+#include "ns3/ndnSIM/utils/tracers/ndn-fileconsumer-tracer.hpp"
+#include "ns3/ndnSIM/utils/tracers/ndn-fileconsumer-log-tracer.hpp"
 
 // #include "ns3/ndnSIM/model/ndn-app-face.hpp"
 #include "ns3/ndnSIM/model/ndn-l3-protocol.hpp"
