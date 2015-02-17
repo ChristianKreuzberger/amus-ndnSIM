@@ -166,6 +166,8 @@ FileConsumer::StopApplication() // Called at time specified by Stop
   Simulator::Cancel(m_sendEvent);
   Simulator::Cancel(m_packetStatsUpdateEvent);
 
+  m_sequenceStatus.clear();
+
   // cleanup base stuff
   App::StopApplication();
 }
@@ -346,6 +348,7 @@ FileConsumer::CreateTimeoutEvent(uint32_t seqNo, uint32_t timeout)
 {
   if (m_chunkTimeoutEvents.find( seqNo ) != m_chunkTimeoutEvents.end())
   {
+    Simulator::Cancel(m_chunkTimeoutEvents[seqNo]);
     m_chunkTimeoutEvents[seqNo].Cancel();
   }
 
@@ -479,8 +482,14 @@ FileConsumer::OnData(shared_ptr<const Data> data)
 
   // make sure that we mark this sequence as received
   m_sequenceStatus[seqNo] = Received;
-  // cancel timeout event
-  m_chunkTimeoutEvents[seqNo].Cancel();
+
+  if (m_chunkTimeoutEvents.find( seqNo ) != m_chunkTimeoutEvents.end())
+  {
+    // cancel timeout event
+    Simulator::Cancel(m_chunkTimeoutEvents[seqNo]);
+    m_chunkTimeoutEvents[seqNo].Cancel();
+    m_chunkTimeoutEvents.erase(seqNo);
+  } // else: don't bother, probably was a duplicate
 
   // trigger OnFileData
   NS_LOG_DEBUG("SeqNo: " << seqNo);
@@ -562,6 +571,8 @@ FileConsumer::OnFileData(uint32_t seq_nr, const uint8_t* data, unsigned length)
 
 
   long SampleRTT  = Simulator::Now().GetMilliSeconds() - m_sequenceSendTime[seq_nr];
+  m_sequenceSendTime.erase(seq_nr);
+//  delete m_sequenceSendTime[seq_nr];
 
 
   // 90% of estimated + 10% of measured RTT
@@ -611,6 +622,20 @@ FileConsumer::OnFileReceived(unsigned status, unsigned length)
 
   // call trace source
   this->m_downloadFinishedTrace(this, _shared_interestName, downloadSpeed, (_finished_time - _start_time));
+
+  // kill all remaining timeout events
+  for (uint32_t seqNo = 0; seqNo < m_maxSeqNo; seqNo++)
+  {
+    Simulator::Cancel(m_chunkTimeoutEvents[seqNo]);
+  }
+
+  Simulator::Cancel(m_sendEvent);
+  m_chunkTimeoutEvents.clear();
+
+  // clear m_sequenceSendTime
+  m_sequenceSendTime.clear();
+
+  // do not clear m_sequenceStatus here, it might still be triggered...
 }
 
 

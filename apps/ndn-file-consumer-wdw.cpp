@@ -150,6 +150,12 @@ FileConsumerWdw::AfterData(bool manifest, bool timeout, uint32_t seq_nr)
       ScheduleNextSendEvent(1000.0 / m_windowSize);
     }
   }
+
+  // if we just received the manifest, let's start sending out packets
+  if (manifest)
+  {
+    SendPacket();
+  }
 }
 
 

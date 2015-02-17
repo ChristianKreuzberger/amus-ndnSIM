@@ -104,6 +104,7 @@ FileConsumerCbr::AfterData(bool manifest, bool timeout, uint32_t seq_nr)
 bool
 FileConsumerCbr::SendPacket()
 {
+  NS_LOG_FUNCTION_NOARGS();
   bool okay = FileConsumer::SendPacket();
 
   if (okay)
