@@ -592,6 +592,9 @@ FileConsumer::ScheduleNextSendEvent(double miliseconds)
 {
   NS_LOG_FUNCTION(this << miliseconds);
 
+  if (miliseconds < 0.00)
+    miliseconds = 0.01;
+
   //NS_LOG_UNCOND("Curtime: " << Simulator::Now().GetMilliSeconds());
   //NS_LOG_UNCOND("Event TS: " << m_sendEvent.GetTs());
 
