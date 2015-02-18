@@ -315,10 +315,11 @@ GlobalRoutingHelper::CalculateAllPossibleRoutes()
     int faceNumber = 0;
     std::vector<uint16_t> originalMetric(uint32_t(l3->getForwarder()->getFaceTable().size()));
     for (auto& i : l3->getForwarder()->getFaceTable()) {
-      faceNumber++;
       shared_ptr<Face> nfdFace = std::dynamic_pointer_cast<Face>(i);
       originalMetric[uint32_t(faceNumber)] = nfdFace->getMetric();
       nfdFace->setMetric(std::numeric_limits<uint16_t>::max() - 1);
+
+      faceNumber++;
       // value std::numeric_limits<uint16_t>::max () MUST NOT be used (reserved)
     }
 
@@ -332,7 +333,7 @@ GlobalRoutingHelper::CalculateAllPossibleRoutes()
       }
 
       // enabling only faceId
-      face->setMetric(originalMetric[uint32_t(faceNumber)]);
+      face->setMetric(originalMetric[uint32_t(faceNumber)-1]);
 
       boost::DistancesMap distances;
 
@@ -381,9 +382,9 @@ GlobalRoutingHelper::CalculateAllPossibleRoutes()
     // recover original interface statuses
     faceNumber = 0;
     for (auto& i : l3->getForwarder()->getFaceTable()) {
-      faceNumber++;
       shared_ptr<Face> face = std::dynamic_pointer_cast<Face>(i);
       face->setMetric(originalMetric[faceNumber]);
+      faceNumber++;
     }
   }
 }
