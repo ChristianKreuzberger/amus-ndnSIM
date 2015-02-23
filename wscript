@@ -15,6 +15,7 @@ def options(opt):
     opt.load(['dependency-checker',
               'doxygen', 'sphinx_build', 'type_traits', 'compiler-features'],
              tooldir=['%s/.waf-tools' % opt.path.abspath()])
+    
 
 def configure(conf):
     conf.load(['dependency-checker',
@@ -28,6 +29,23 @@ def configure(conf):
             '/opt/local/lib/pkgconfig'])
     conf.check_cfg(package='libndn-cxx', args=['--cflags', '--libs'],
                    uselib_store='NDN_CXX', mandatory=True)
+    
+    test_code = '''
+#include "libdash.h"
+
+int main()
+{
+  return 0;
+}
+'''
+
+    conf.env.append_value('INCLUDES', os.path.abspath(os.path.join("../libdash/libdash/libdash/include/", ".")))
+
+    conf.check(args=["--cflags", "--libs"], fragment=test_code, package='libdash', lib='dash', mandatory=True, define_name='DASH', 
+                                                    uselib_store='DASH',libpath=os.path.abspath(os.path.join("../libdash/libdash/build/bin/", ".")))
+
+    conf.env.append_value('NS3_MODULE_PATH',os.path.abspath(os.path.join("../libdash/libdash/build/bin/", ".")))
+
 
     if not conf.env['LIB_BOOST']:
         conf.report_optional_feature("ndnSIM", "ndnSIM", False,
@@ -81,9 +99,12 @@ def build(bld):
     module = bld.create_ns3_module ('ndnSIM', deps)
     module.module = 'ndnSIM'
     module.features += ' ns3fullmoduleheaders'
-    module.uselib = 'NDN_CXX BOOST'
+    module.uselib = 'NDN_CXX BOOST DASH'
     module.includes = [".", "./NFD", "./NFD/daemon", "./NFD/core"]
     module.export_includes = [".", "./NFD", "./NFD/daemon", "./NFD/core"]
+
+    # module.includes.append(os.path.abspath(os.path.join("../../../libdash/libdash/libdash/include/", ".")))
+    module.includes.append(os.path.abspath(os.path.join("../libdash/libdash/build/bin/", ".")))
 
     headers = bld (features='ns3header')
     headers.module = 'ndnSIM'
@@ -103,8 +124,6 @@ def build(bld):
 
     if bld.env['ENABLE_BRITE']:
         module.includes.append(os.path.abspath(os.path.join(bld.env['WITH_BRITE'],'.')))
-        #module.source.append ('helper/ndn-brite-topology-helper.cpp')
-        #headers.source.append ('helper/ndn-brite-topology-helper.hpp')
 
     if bld.env.ENABLE_EXAMPLES:
         bld.recurse('examples')

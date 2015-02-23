@@ -94,6 +94,11 @@ MultimediaConsumer<Parent>::StartApplication() // Called at time specified by St
 
   // do base stuff
   super::StartApplication();
+
+
+  dash::mpd::IMPD *mpd;
+  dash::IDASHManager *manager;
+  manager = CreateDashManager();
 }
 
 
