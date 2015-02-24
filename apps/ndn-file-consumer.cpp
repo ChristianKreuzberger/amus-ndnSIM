@@ -33,6 +33,15 @@
 #include <math.h>
 
 
+#include <fstream>
+#include <iostream>
+#include <boost/iostreams/filtering_streambuf.hpp>
+#include <boost/iostreams/copy.hpp>
+#include <boost/iostreams/filter/gzip.hpp>
+
+
+
+
 
 #define ALPHA 0.125
 #define BETA 0.25
@@ -640,6 +649,34 @@ FileConsumer::OnFileReceived(unsigned status, unsigned length)
 
   // do not clear m_sequenceStatus here, it might still be triggered...
 }
+
+
+void
+FileConsumer::DecompressFile ( std::string source, std::string filename )
+{
+  std::ifstream file( source.c_str(), std::ios_base::in | std::ios_base::binary ); //Creates the input stream
+
+  //Tests if the file is being opened correctly.
+  if ( !file )
+  {
+   std::cerr<< "Can't open file: " << source << std::endl;
+   return;
+  }
+
+  try
+  {
+    std::ofstream out( filename.c_str(), std::ios_base::out |  std::ios_base::binary ); //Creates the output stream
+    boost::iostreams::filtering_streambuf<boost::iostreams::input> in; //Sets the filters to be used in the input stream
+    in.push( boost::iostreams::gzip_decompressor() ); //Decompress being used on the file in the input stream
+    in.push( file );
+    boost::iostreams::copy( in, out ); //Copy the decompressed file to the output stream
+  }
+  catch(std::exception& e)
+  {
+    std::cerr << e.what() << std::endl;
+  }
+}
+
 
 
 

@@ -63,6 +63,10 @@ public:
   static TypeId
   GetTypeId();
 
+
+  static void
+  DecompressFile ( std::string source, std::string filename );
+
   /**
    * \brief Default constructor
    * Sets up randomizer function and packet sequence number
