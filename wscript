@@ -103,9 +103,6 @@ def build(bld):
     module.includes = [".", "./NFD", "./NFD/daemon", "./NFD/core"]
     module.export_includes = [".", "./NFD", "./NFD/daemon", "./NFD/core"]
 
-    # module.includes.append(os.path.abspath(os.path.join("../../../libdash/libdash/libdash/include/", ".")))
-    module.includes.append(os.path.abspath(os.path.join("../libdash/libdash/build/bin/", ".")))
-
     headers = bld (features='ns3header')
     headers.module = 'ndnSIM'
     headers.source = ["ndn-all.hpp"]
