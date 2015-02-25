@@ -68,6 +68,7 @@ template<class Parent>
 class MultimediaConsumer : public Parent {
   typedef Parent super;
 public:
+  enum DownloadType { MPD = 0, InitSegment = 1, Segment = 2 };
   static TypeId
   GetTypeId();
 
@@ -103,12 +104,46 @@ protected:
   std::string m_tempMpdFile; ///< \brief path to the temporary MPD file
 
 
-
-
-
   dash::mpd::IMPD *mpd; ///< \brief Pointer to the MPD
   std::map<std::string, IRepresentation*> m_availableRepresentations; ///< \brief a map with available representations
   std::string m_baseURL; ///< \brief the base URL as extracted from the MPD
+  std::string m_initSegment; ///< \brief the URI of the init segment
+  std::string m_curRepId; ///< \brief the representation ID that's currently being downloaded
+
+
+  std::vector<std::string /* representation_id */> m_downloadedRepresentations;
+  unsigned int m_curSegmentNumber;
+  unsigned long m_startTime;
+
+
+  bool m_mpdParsed;
+  bool m_initSegmentIsGlobal;
+
+  unsigned int m_segmentDurationInSeconds;
+
+  unsigned int m_bufferedSeconds;
+
+  std::vector<std::string> m_downloadedInitSegments; ///< \brief a vector containing the representation IDs of which we have init segments
+  DownloadType m_currentDownloadType;
+
+  virtual void
+  OnMpdFile();
+
+  virtual void
+  OnMultimediaFile();
+
+
+  virtual void
+  ScheduleDownloadOfInitSegment();
+
+  virtual void
+  DownloadInitSegment();
+
+  virtual void
+  ScheduleDownloadOfSegment();
+
+  virtual void
+  DownloadSegment();
 };
 
 } // namespace ndn

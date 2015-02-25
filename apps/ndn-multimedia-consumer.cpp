@@ -113,6 +113,13 @@ MultimediaConsumer<Parent>::StartApplication() // Called at time specified by St
 
   m_tempMpdFile = m_tempDir + "/mpd.xml.gz";
 
+  m_mpdParsed = false;
+  m_initSegmentIsGlobal = false;
+  m_currentDownloadType = MPD;
+  m_curSegmentNumber = 0;
+  m_bufferedSeconds = 0;
+  m_startTime = Simulator::Now().GetMilliSeconds();
+
   super::SetAttribute("FileToRequest", StringValue(m_mpdInterestName.toUri()));
   super::SetAttribute("WriteOutfile", StringValue(m_tempMpdFile));
 
@@ -140,13 +147,11 @@ MultimediaConsumer<Parent>::StopApplication() // Called at time specified by Sto
 }
 
 
+
 template<class Parent>
 void
-MultimediaConsumer<Parent>::OnFileReceived(unsigned status, unsigned length)
+MultimediaConsumer<Parent>::OnMpdFile()
 {
-  // make sure that the file is being properly retrieved by the super class first!
-  super::OnFileReceived(status, length);
-
   // check if file was gziped
   if (m_tempMpdFile.find(".gz") != std::string::npos)
   {
@@ -222,6 +227,7 @@ MultimediaConsumer<Parent>::OnFileReceived(unsigned status, unsigned length)
     // get URL to init segment
     initSegment = adaptationSet->GetSegmentBase ()->GetInitialization ()->GetSourceURL ();
     // TODO: request init segment
+    m_initSegmentIsGlobal = true;
   }
   else
   {
@@ -232,11 +238,19 @@ MultimediaConsumer<Parent>::OnFileReceived(unsigned status, unsigned length)
     }*/
   }
 
+
+
   // get all representations
   std::vector<IRepresentation*> reps = adaptationSet->GetRepresentation();
 
   std::cerr << "MPD file contains " << reps.size() << " Representations: "  << std::endl;
   std::cerr << "Start Representation: " << m_startRepresentationId << std::endl;
+
+    // calculate segment duration
+  // reps.at(0)->GetSegmentList()->GetDuration();
+  std::cerr << "Period Duration:" << reps.at(0)->GetSegmentList()->GetDuration() << std::endl;
+
+  m_segmentDurationInSeconds = reps.at(0)->GetSegmentList()->GetDuration();
 
   bool startRepresentationSelected = false;
 
@@ -326,6 +340,8 @@ MultimediaConsumer<Parent>::OnFileReceived(unsigned status, unsigned length)
     startRepresentationSelected = true;
   }
 
+  m_curRepId = m_startRepresentationId;
+
   // okay, check init segment
   if (initSegment == "")
   {
@@ -335,6 +351,137 @@ MultimediaConsumer<Parent>::OnFileReceived(unsigned status, unsigned length)
   }
 
 
+  m_mpdParsed = true;
+  // trigger MPD parsed after x seconds
+  unsigned long curTime = Simulator::Now().GetMilliSeconds();
+  std::cerr << "MPD received after " << (curTime - m_startTime) << " ms" << std::endl;
+
+  if (initSegment == "")
+  {
+    std::cerr << "No init Segment selected." << std::endl;
+    // schedule streaming of first segment
+    m_currentDownloadType = Segment;
+
+  } else
+  {
+    // Schedule streaming of init segment
+    m_initSegment = initSegment;
+    m_currentDownloadType = InitSegment;
+    ScheduleDownloadOfInitSegment();
+
+  }
+
+}
+
+template<class Parent>
+void
+MultimediaConsumer<Parent>::OnMultimediaFile()
+{
+  std::cerr << "Received Multimedia File: " << super::m_interestName << std::endl;
+
+  // get the current representation id
+  // and check if this was an init segment
+  if (m_currentDownloadType == InitSegment)
+  {
+    // init segment
+    if (m_initSegmentIsGlobal)
+    {
+      m_downloadedInitSegments.push_back("GlobalAdaptationSet");
+      std::cerr << "Global Init Segment received" << std::endl;
+    } else
+    {
+      m_downloadedInitSegments.push_back(m_curRepId);
+      std::cerr << "Init Segment received (rep=" << m_curRepId << ")" << std::endl;
+    }
+
+  } else
+  {
+    // normal segment
+    unsigned long curTime = Simulator::Now().GetMilliSeconds();
+    std::cerr << "Normal Segment received after " << (curTime - m_startTime)  << " ms.." << std::endl;
+
+    m_bufferedSeconds += m_segmentDurationInSeconds;
+    m_curSegmentNumber++;
+  }
+
+  m_currentDownloadType = Segment;
+  ScheduleDownloadOfSegment();
+
+  //
+}
+
+
+template<class Parent>
+void
+MultimediaConsumer<Parent>::OnFileReceived(unsigned status, unsigned length)
+{
+  // make sure that the file is being properly retrieved by the super class first!
+  super::OnFileReceived(status, length);
+
+  if (!m_mpdParsed)
+  {
+    OnMpdFile();
+  } else
+  {
+    OnMultimediaFile();
+  }
+
+}
+
+
+
+template<class Parent>
+void
+MultimediaConsumer<Parent>::ScheduleDownloadOfInitSegment()
+{
+  // wait some time (10 milliseconds) before requesting the next first segment
+  // basically, we simulate that parsing the MPD takes 10 ms on the client
+  // this assumption might not be true generally speaking, but not waiting at all
+  // is worse.
+  Simulator::Schedule(Seconds(0.01), &MultimediaConsumer<Parent>::DownloadInitSegment, this);
+}
+
+
+template<class Parent>
+void
+MultimediaConsumer<Parent>::DownloadInitSegment()
+{
+  std::cerr << "Downloading init segment... " << m_baseURL + m_initSegment << ";" << std::endl;
+  super::StopApplication();
+  super::SetAttribute("FileToRequest", StringValue(m_baseURL + m_initSegment));
+  super::SetAttribute("WriteOutfile", StringValue(""));
+  super::StartApplication();
+}
+
+
+
+template<class Parent>
+void
+MultimediaConsumer<Parent>::ScheduleDownloadOfSegment()
+{
+  // wait 1 ms (dummy time) before downloading next segment - this prevents some issues
+  // with start/stop application and interests coming in late.
+  Simulator::Schedule(Seconds(0.001), &MultimediaConsumer<Parent>::DownloadSegment, this);
+}
+
+
+template<class Parent>
+void
+MultimediaConsumer<Parent>::DownloadSegment()
+{
+  if (m_curSegmentNumber >= m_availableRepresentations[m_curRepId]->GetSegmentList()->GetSegmentURLs().size())
+  {
+    std::cerr << "No more segments available for download!" << std::endl;
+    return;
+  }
+
+  // get segment number and rep id
+  dash::mpd::ISegmentURL* segment = m_availableRepresentations[m_curRepId]->GetSegmentList()->GetSegmentURLs().at(m_curSegmentNumber);
+
+  super::StopApplication();
+  super::SetAttribute("FileToRequest", StringValue(m_baseURL + segment->GetMediaURI()));
+  super::SetAttribute("WriteOutfile", StringValue(""));
+  super::StartApplication();
 }
 
 
