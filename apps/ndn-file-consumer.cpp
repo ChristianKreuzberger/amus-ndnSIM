@@ -574,7 +574,13 @@ FileConsumer::OnFileData(uint32_t seq_nr, const uint8_t* data, unsigned length)
   if (!m_outFile.empty())
   {
     FILE * fp = fopen(m_outFile.c_str(), "ab");
-    fwrite(data, sizeof(uint8_t), length, fp);
+    if (seq_nr != m_maxSeqNo)
+    {
+      fwrite(data, sizeof(uint8_t), length, fp);
+    } else
+    {
+      fwrite(data, sizeof(uint8_t), m_fileSize % m_maxPayloadSize, fp);
+    }
     fclose(fp);
   }
 
