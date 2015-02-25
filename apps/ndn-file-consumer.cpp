@@ -615,6 +615,14 @@ FileConsumer::ScheduleNextSendEvent(double miliseconds)
 }
 
 
+double
+FileConsumer::CalculateDownloadSpeed()
+{
+  _finished_time = Simulator::Now().GetMilliSeconds ();
+  return (double)m_fileSize/ ( (double)(_finished_time - _start_time)/1000.0 );
+}
+
+
 void
 FileConsumer::OnFileReceived(unsigned status, unsigned length)
 {
@@ -628,8 +636,7 @@ FileConsumer::OnFileReceived(unsigned status, unsigned length)
   // do nothing here
   NS_LOG_DEBUG("Finally received the whole file!");
 
-  _finished_time = Simulator::Now().GetMilliSeconds ();
-  double downloadSpeed = (double)m_fileSize/ ( (double)(_finished_time - _start_time)/1000.0 );
+  double downloadSpeed = CalculateDownloadSpeed();
   NS_LOG_DEBUG("Download finished after " << (_finished_time - _start_time) << "ms; AvgSpeed = " << downloadSpeed << " bytes per second.");
 
   // call trace source

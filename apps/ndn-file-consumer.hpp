@@ -137,6 +137,9 @@ protected:
   uint16_t
   GetFaceMTU(uint32_t faceId);
 
+  double
+  CalculateDownloadSpeed();
+
 
   EventId m_sendEvent; ///< @brief EventId of pending "send packet" event
   long m_nextEventScheduleTime;
