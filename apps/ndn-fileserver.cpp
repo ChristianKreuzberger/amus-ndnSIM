@@ -217,8 +217,9 @@ FileServer::ReturnPayloadData(shared_ptr<const Interest> interest, std::string& 
   size_t actualSize = fread(buffer->get(), sizeof(uint8_t), m_maxPayloadSize, fp);
   fclose(fp);
 
-  if (actualSize < m_maxPayloadSize)
-    buffer->resize(actualSize);
+  /*if (actualSize < m_maxPayloadSize)
+    buffer->resize(actualSize+1);*/
+
 
   data->setContent(buffer);
 
