@@ -50,6 +50,7 @@
 
 #include "libdash.h"
 
+#include "ns3/ndnSIM/utils/libdash/adaptation-set-helper.hpp"
 
 
 
@@ -85,9 +86,29 @@ public:
 
 
 protected:
+  virtual void
+  OnFileReceived(unsigned status, unsigned length);
+
   Name m_mpdInterestName;     ///< \brief NDN Name of the Interest (use Name)
-  unsigned int m_screenWidth, m_screenHeight;
-  std::string m_deviceType;
+  unsigned int m_screenWidth; ///< \brief The spatial width of the simulated screen
+  unsigned int m_screenHeight; ///< \brief The spatial height of the simulated screen
+  std::string m_deviceType;   ///< \brief The device type
+  bool m_allowUpscale;        ///< \brief Whether or not it is possible to upscale content with lower resolutions to the screen width/height
+  bool m_allowDownscale;      ///< \brief Whether or not it is possible to downscale content with higher resolutions to the screen width/height
+
+  std::string m_startRepresentationId;  ///< \brief The representation ID for initializing streaming
+
+
+  std::string m_tempDir; ///< \brief a temporary directory for storing and parsing the downloaded mpd file
+  std::string m_tempMpdFile; ///< \brief path to the temporary MPD file
+
+
+
+
+
+  dash::mpd::IMPD *mpd; ///< \brief Pointer to the MPD
+  std::map<std::string, IRepresentation*> m_availableRepresentations; ///< \brief a map with available representations
+  std::string m_baseURL; ///< \brief the base URL as extracted from the MPD
 };
 
 } // namespace ndn
