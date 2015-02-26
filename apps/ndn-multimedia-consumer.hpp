@@ -50,8 +50,13 @@
 
 #include "libdash.h"
 
-#include "ns3/ndnSIM/utils/libdash/adaptation-set-helper.hpp"
+#include "utils/multimedia/multimedia-player.hpp"
 
+
+#define MULTIMEDIA_CONSUMER_LOOP_TIMER 0.1
+
+
+using namespace dash::mpd;
 
 
 namespace ns3 {
@@ -96,8 +101,10 @@ protected:
   std::string m_deviceType;   ///< \brief The device type
   bool m_allowUpscale;        ///< \brief Whether or not it is possible to upscale content with lower resolutions to the screen width/height
   bool m_allowDownscale;      ///< \brief Whether or not it is possible to downscale content with higher resolutions to the screen width/height
+  unsigned int m_maxBufferedSeconds; ///< \brief The maximum amount of buffered seconds
 
   std::string m_startRepresentationId;  ///< \brief The representation ID for initializing streaming
+  std::string m_adaptationLogicStr;     ///< \brief The adaptation logic that should be used
 
 
   std::string m_tempDir; ///< \brief a temporary directory for storing and parsing the downloaded mpd file
@@ -105,6 +112,8 @@ protected:
 
 
   dash::mpd::IMPD *mpd; ///< \brief Pointer to the MPD
+  dash::player::MultimediaPlayer *mPlayer;
+
   std::map<std::string, IRepresentation*> m_availableRepresentations; ///< \brief a map with available representations
   std::string m_baseURL; ///< \brief the base URL as extracted from the MPD
   std::string m_initSegment; ///< \brief the URI of the init segment
@@ -113,15 +122,28 @@ protected:
 
   std::vector<std::string /* representation_id */> m_downloadedRepresentations;
   unsigned int m_curSegmentNumber;
-  unsigned long m_startTime;
+  int64_t m_startTime;
+
+  int64_t m_freezeStartTime;
 
 
   bool m_mpdParsed;
   bool m_initSegmentIsGlobal;
+  bool m_hasStartedPlaying;
+  bool m_hasDownloadedAllSegments;
 
   unsigned int m_segmentDurationInSeconds;
 
-  unsigned int m_bufferedSeconds;
+
+
+  void SchedulePlay(double wait_time = MULTIMEDIA_CONSUMER_LOOP_TIMER);
+  void DoPlay();
+
+  EventId m_consumerLoopTimer;
+
+
+
+
 
   std::vector<std::string> m_downloadedInitSegments; ///< \brief a vector containing the representation IDs of which we have init segments
   DownloadType m_currentDownloadType;
@@ -131,7 +153,6 @@ protected:
 
   virtual void
   OnMultimediaFile();
-
 
   virtual void
   ScheduleDownloadOfInitSegment();

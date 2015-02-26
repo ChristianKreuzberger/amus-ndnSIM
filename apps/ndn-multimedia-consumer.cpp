@@ -34,6 +34,9 @@
 #include "model/ndn-app-face.hpp"
 
 
+#include "utils/multimedia/multimedia-player.hpp"
+
+
 
 NS_LOG_COMPONENT_DEFINE("ndn.MultimediaConsumer");
 
@@ -61,12 +64,17 @@ MultimediaConsumer<Parent>::GetTypeId(void)
                     MakeUintegerAccessor(&MultimediaConsumer<Parent>::m_screenWidth), MakeUintegerChecker<uint32_t>())
       .template AddAttribute("ScreenHeight", "Height of the screen", UintegerValue(1080),
                     MakeUintegerAccessor(&MultimediaConsumer<Parent>::m_screenHeight), MakeUintegerChecker<uint32_t>())
+      .template AddAttribute("MaxBufferedSeconds", "Maximum amount of buffered seconds allowed", UintegerValue(30),
+                    MakeUintegerAccessor(&MultimediaConsumer<Parent>::m_maxBufferedSeconds), MakeUintegerChecker<uint32_t>())
       .template AddAttribute("DeviceType", "PC, Laptop, Tablet, Phone, Game Console", StringValue("PC"),
                     MakeStringAccessor(&MultimediaConsumer<Parent>::m_deviceType), MakeStringChecker())
       .template AddAttribute("AllowUpscale", "Define whether or not the client has capabilities to upscale content with lower resolutions", BooleanValue(true),
                     MakeBooleanAccessor (&MultimediaConsumer<Parent>::m_allowUpscale), MakeBooleanChecker ())
       .template AddAttribute("AllowDownscale", "Define whether or not the client has capabilities to downscale content with higher resolutions", BooleanValue(false),
                     MakeBooleanAccessor (&MultimediaConsumer<Parent>::m_allowDownscale), MakeBooleanChecker ())
+      .template AddAttribute("AdaptationLogic", "Defines the adaptation logic to be used; ",
+                          StringValue("dash::player::AlwaysLowestAdaptationLogic"),
+                    MakeStringAccessor (&MultimediaConsumer<Parent>::m_adaptationLogicStr), MakeStringChecker ())
       .template AddAttribute("StartRepresentationId", """Defines the representation ID of the representation to start streaming; "
                           "can be either an ID from the MPD file or one of the following keywords: "
                           "lowest, auto (lowest = the lowest representation available, auto = the best representation that can be streamed based on the estimated bandwidth)",
@@ -115,16 +123,28 @@ MultimediaConsumer<Parent>::StartApplication() // Called at time specified by St
 
   m_mpdParsed = false;
   m_initSegmentIsGlobal = false;
+  m_hasDownloadedAllSegments = false;
+  m_hasStartedPlaying = false;
+  m_freezeStartTime = 0;
+
   m_currentDownloadType = MPD;
   m_curSegmentNumber = 0;
-  m_bufferedSeconds = 0;
   m_startTime = Simulator::Now().GetMilliSeconds();
+
+  NS_LOG_DEBUG("Trying to instantiate MultimediaPlayer(" << m_adaptationLogicStr << ")");
+
+  mPlayer = new dash::player::MultimediaPlayer(m_adaptationLogicStr);
+
+  NS_ASSERT_MSG(mPlayer->GetAdaptationLogic() != nullptr,
+          "Could not initialize adaptation logic...");
 
   super::SetAttribute("FileToRequest", StringValue(m_mpdInterestName.toUri()));
   super::SetAttribute("WriteOutfile", StringValue(m_tempMpdFile));
 
 
   m_availableRepresentations.clear();
+
+
 
   // do base stuff
   super::StartApplication();
@@ -138,9 +158,15 @@ MultimediaConsumer<Parent>::StopApplication() // Called at time specified by Sto
 {
   NS_LOG_FUNCTION_NOARGS();
 
+  m_consumerLoopTimer.Cancel();
+  Simulator::Cancel(m_consumerLoopTimer);
+
   m_availableRepresentations.clear();
 
+  delete this->mpd;
+  delete this->mPlayer;
   this->mpd = NULL;
+  this->mPlayer = NULL;
 
   // cleanup base stuff
   super::StopApplication();
@@ -352,6 +378,9 @@ MultimediaConsumer<Parent>::OnMpdFile()
 
 
   m_mpdParsed = true;
+  mPlayer->SetAvailableRepresentations(&m_availableRepresentations);
+
+
   // trigger MPD parsed after x seconds
   unsigned long curTime = Simulator::Now().GetMilliSeconds();
   std::cerr << "MPD received after " << (curTime - m_startTime) << " ms" << std::endl;
@@ -368,10 +397,14 @@ MultimediaConsumer<Parent>::OnMpdFile()
     m_initSegment = initSegment;
     m_currentDownloadType = InitSegment;
     ScheduleDownloadOfInitSegment();
-
   }
 
+
+  // we received the MDP, so we can now start the timer for playing
+  SchedulePlay();
 }
+
+
 
 template<class Parent>
 void
@@ -400,7 +433,9 @@ MultimediaConsumer<Parent>::OnMultimediaFile()
     unsigned long curTime = Simulator::Now().GetMilliSeconds();
     std::cerr << "Normal Segment received after " << (curTime - m_startTime)  << " ms.." << std::endl;
 
-    m_bufferedSeconds += m_segmentDurationInSeconds;
+
+    mPlayer->AddToBuffer(m_segmentDurationInSeconds);
+
     m_curSegmentNumber++;
   }
 
@@ -471,7 +506,18 @@ MultimediaConsumer<Parent>::DownloadSegment()
 {
   if (m_curSegmentNumber >= m_availableRepresentations[m_curRepId]->GetSegmentList()->GetSegmentURLs().size())
   {
-    std::cerr << "No more segments available for download!" << std::endl;
+    std::cerr << "No more segments available for download! " << std::endl;
+    m_hasDownloadedAllSegments = true;
+    return;
+  }
+
+  if (mPlayer->GetBufferLevel() >= m_maxBufferedSeconds)
+  {
+    NS_LOG_DEBUG("Player Buffer=" << mPlayer->GetBufferLevel() << ", MaxBuffer= " << m_maxBufferedSeconds << ", pausing download...");
+    // we can wait before we need to downlaod something again - but for how long?
+    // seems that half of segment-length should be good
+
+    Simulator::Schedule(Seconds((double)this->m_segmentDurationInSeconds / 2.0), &MultimediaConsumer<Parent>::DownloadSegment, this);
     return;
   }
 
@@ -483,6 +529,72 @@ MultimediaConsumer<Parent>::DownloadSegment()
   super::SetAttribute("WriteOutfile", StringValue(""));
   super::StartApplication();
 }
+
+
+
+
+
+template<class Parent>
+void
+MultimediaConsumer<Parent>::SchedulePlay(double wait_time)
+{
+  m_consumerLoopTimer.Cancel();
+  m_consumerLoopTimer = Simulator::Schedule(Seconds(wait_time), &MultimediaConsumer<Parent>::DoPlay, this);
+}
+
+
+
+template<class Parent>
+void
+MultimediaConsumer<Parent>::DoPlay()
+{
+  unsigned int buffer_level = mPlayer->GetBufferLevel();
+
+  NS_LOG_DEBUG("Cur Buffer Level = " << buffer_level);
+
+  // did we finish streaming yet?
+  if (buffer_level == 0 && m_hasDownloadedAllSegments == true)
+  {
+    // yes we did
+    NS_LOG_DEBUG("Finished streaming!");
+    return;
+  }
+
+  if (mPlayer->ConsumeFromBuffer(m_segmentDurationInSeconds))
+  {
+    if (!m_hasStartedPlaying)
+    {
+      // we havent started yet, so we can measure the start-up delay until now
+      m_hasStartedPlaying = true;
+      int64_t startUpDelay = Simulator::Now().GetMilliSeconds() - m_startTime;
+      NS_LOG_DEBUG("Started consuming ... (Start-Up Delay: " << startUpDelay << " milliseconds)");
+    }
+    else if (m_freezeStartTime != 0)
+    {
+      // we had a freeze/stall, but we can continue playing now
+      // measure:
+      int64_t freezeTime = Simulator::Now().GetMilliSeconds() - m_freezeStartTime;
+      m_freezeStartTime = 0;
+      NS_LOG_DEBUG("Freeze Of " << freezeTime << " milliseconds is over!");
+    }
+
+    NS_LOG_DEBUG("Consuming " << m_segmentDurationInSeconds << " seconds from buffer...");
+    // this means we don't need to consume anything for m_segmentDurationInSeconds seconds.
+    SchedulePlay(1.0 * m_segmentDurationInSeconds);
+  } else {
+    // could not consume, means buffer is empty
+    if (m_freezeStartTime == 0 && m_hasStartedPlaying == true)
+    {
+      // this actually means that we have a stall/free (m_hasStartedPlaying == false would mean that this is part of start up delay)
+      // set m_freezeStartTime
+      m_freezeStartTime = Simulator::Now().GetMilliSeconds();
+    }
+
+    // continue trying to consume... - these are unsmooth seconds
+    SchedulePlay();
+  }
+}
+
 
 
 
