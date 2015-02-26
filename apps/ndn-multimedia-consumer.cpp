@@ -18,6 +18,7 @@
  **/
 
 #include "ndn-multimedia-consumer.hpp"
+#include "ns3/core-module.h"
 #include "ns3/ptr.h"
 #include "ns3/log.h"
 #include "ns3/simulator.h"
@@ -115,8 +116,13 @@ MultimediaConsumer<Parent>::StartApplication() // Called at time specified by St
   NS_LOG_DEBUG("MPD File: " << m_mpdInterestName);
   NS_LOG_DEBUG("SuperClass: " << super::GetTypeId ().GetName ());
 
-  m_tempDir = ns3::SystemPath::MakeTemporaryDirectoryName();
-  NS_LOG_UNCOND("Temporary Directory: " << m_tempDir);
+  uint32_t node_id = super::GetNode ()->GetId();
+
+  std::stringstream ss_tempDir;
+  ss_tempDir << "/" << node_id;
+  m_tempDir = ns3::SystemPath::MakeTemporaryDirectoryName() + ss_tempDir.str();
+
+  NS_LOG_DEBUG("Temporary Directory: " << m_tempDir);
   ns3::SystemPath::MakeDirectories(m_tempDir);
 
   m_tempMpdFile = m_tempDir + "/mpd.xml.gz";
