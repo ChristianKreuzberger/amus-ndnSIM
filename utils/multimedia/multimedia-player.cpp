@@ -27,6 +27,7 @@ namespace player
 {
 MultimediaPlayer::MultimediaPlayer() : MultimediaPlayer("dash::player::AdaptationLogic")
 {
+  m_lastBitrate = 0.0;
 }
 
 
@@ -96,6 +97,20 @@ MultimediaPlayer::ConsumeFromBuffer(unsigned int seconds)
     return true;
   }
   return false;
+}
+
+
+void
+MultimediaPlayer::SetLastDownloadBitRate(double bitrate)
+{
+  this->m_lastBitrate = bitrate;
+}
+
+
+double
+MultimediaPlayer::GetLastDownloadBitRate()
+{
+  return this->m_lastBitrate;
 }
 
 

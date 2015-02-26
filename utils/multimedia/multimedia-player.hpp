@@ -56,8 +56,15 @@ public:
   std::shared_ptr<AdaptationLogic>&
   GetAdaptationLogic();
 
+  void
+  SetLastDownloadBitRate(double bitrate);
+
+  double
+  GetLastDownloadBitRate();
+
 protected:
   unsigned int m_buffer;
+  double m_lastBitrate;
   std::shared_ptr<AdaptationLogic> m_adaptLogic;
   std::map<std::string, IRepresentation*>* m_availableRepresentations;
 };

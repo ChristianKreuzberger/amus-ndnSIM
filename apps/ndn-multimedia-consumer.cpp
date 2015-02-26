@@ -78,7 +78,7 @@ MultimediaConsumer<Parent>::GetTypeId(void)
                     MakeStringAccessor (&MultimediaConsumer<Parent>::m_adaptationLogicStr), MakeStringChecker ())
       .template AddAttribute("StartRepresentationId", """Defines the representation ID of the representation to start streaming; "
                           "can be either an ID from the MPD file or one of the following keywords: "
-                          "lowest, auto (lowest = the lowest representation available, auto = the best representation that can be streamed based on the estimated bandwidth)",
+                          "lowest, auto (lowest = the lowest representation available, auto = use adaptation logic to decide)",
                           StringValue("auto"),
                     MakeStringAccessor (&MultimediaConsumer<Parent>::m_startRepresentationId), MakeStringChecker ())
                     ;
@@ -290,6 +290,8 @@ MultimediaConsumer<Parent>::OnMpdFile()
   std::string bestRepresentationBasedOnBandwidth = "";
 
   double downloadSpeed = super::CalculateDownloadSpeed() * 8;
+  mPlayer->SetLastDownloadBitRate(downloadSpeed);
+
 
   std::cerr << "Download Speed of MPD file was : " << downloadSpeed << " bits per second" << std::endl;
 
@@ -436,10 +438,11 @@ MultimediaConsumer<Parent>::OnMultimediaFile()
   } else
   {
     // normal segment
-    unsigned long curTime = Simulator::Now().GetMilliSeconds();
-    std::cerr << "Normal Segment received after " << (curTime - m_startTime)  << " ms.." << std::endl;
+    //unsigned long curTime = Simulator::Now().GetMilliSeconds();
+    //std::cerr << "Normal Segment received after " << (curTime - m_startTime)  << " ms.." << std::endl;
 
-
+    double downloadSpeed = super::CalculateDownloadSpeed() * 8;
+    mPlayer->SetLastDownloadBitRate(downloadSpeed);
     mPlayer->AddToBuffer(m_segmentDurationInSeconds);
 
     m_curSegmentNumber++;
@@ -527,8 +530,11 @@ MultimediaConsumer<Parent>::DownloadSegment()
     return;
   }
 
+
   // get segment number and rep id
-  dash::mpd::ISegmentURL* segment = m_availableRepresentations[m_curRepId]->GetSegmentList()->GetSegmentURLs().at(m_curSegmentNumber);
+  dash::mpd::ISegmentURL* segment = mPlayer->GetAdaptationLogic()->GetNextSegment(m_curSegmentNumber);
+          // m_availableRepresentations[m_curRepId]->GetSegmentList()->GetSegmentURLs().at(m_curSegmentNumber);
+
 
   super::StopApplication();
   super::SetAttribute("FileToRequest", StringValue(m_baseURL + segment->GetMediaURI()));
