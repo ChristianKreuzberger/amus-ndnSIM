@@ -50,6 +50,22 @@ AdaptationLogic::SetAvailableRepresentations(std::map<std::string, IRepresentati
 }
 
 
+
+ISegmentURL*
+AdaptationLogic::GetNextSegment(unsigned int current_segment_number)
+{
+  return NULL;
+}
+
+
+IRepresentation*
+AdaptationLogic::GetLowestRepresentation()
+{
+    return (this->m_availableRepresentations->begin()->second);
+}
+
+
+
 }
 
 }

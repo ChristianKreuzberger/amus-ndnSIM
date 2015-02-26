@@ -62,10 +62,16 @@ public:
 
   void SetAvailableRepresentations(std::map<std::string, IRepresentation*>* availableRepresentations);
 
+  virtual ISegmentURL*
+  GetNextSegment(unsigned int current_segment_number);
+
 
 protected:
   MultimediaPlayer* m_multimediaPlayer;
   std::map<std::string, IRepresentation*>* m_availableRepresentations;
+
+  IRepresentation*
+  GetLowestRepresentation();
 
 
 

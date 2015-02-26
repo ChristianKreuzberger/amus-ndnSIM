@@ -27,7 +27,12 @@ namespace player
 
 ENSURE_ADAPTATION_LOGIC_INITIALIZED(AlwaysLowestAdaptationLogic);
 
-
+ISegmentURL*
+AlwaysLowestAdaptationLogic::GetNextSegment(unsigned int current_segment_number)
+{
+  IRepresentation* rep = GetLowestRepresentation();
+  return rep->GetSegmentList()->GetSegmentURLs().at(current_segment_number);
+}
 
 }
 

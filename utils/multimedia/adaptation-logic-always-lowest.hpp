@@ -42,6 +42,9 @@ public:
     return std::make_shared<AlwaysLowestAdaptationLogic>(mPlayer);
   }
 
+  virtual ISegmentURL*
+  GetNextSegment(unsigned int current_segment_number);
+
 
 protected:
   static AlwaysLowestAdaptationLogic _staticLogic;

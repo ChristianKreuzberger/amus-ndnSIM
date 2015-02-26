@@ -16,7 +16,7 @@
  * ndnSIM, e.g., in COPYING.md file.  If not, see <http://www.gnu.org/licenses/>.
  **/
 
-#include "adaptation-logic-rate-based.hpp"
+#include "adaptation-logic-rate-and-buffer-based.hpp"
 #include "multimedia-player.hpp"
 
 
@@ -25,22 +25,37 @@ namespace dash
 namespace player
 {
 
-ENSURE_ADAPTATION_LOGIC_INITIALIZED(RateBasedAdaptationLogic);
+ENSURE_ADAPTATION_LOGIC_INITIALIZED(RateAndBufferBasedAdaptationLogic);
 
 ISegmentURL*
-RateBasedAdaptationLogic::GetNextSegment(unsigned int current_segment_number)
+RateAndBufferBasedAdaptationLogic::GetNextSegment(unsigned int current_segment_number)
 {
-  double last_download_speed = this->m_multimediaPlayer->GetLastDownloadBitRate();
+  const IRepresentation* useRep = NULL;;
 
-  const IRepresentation* useRep;
+  double factor = 1.0;
+
+  if (this->m_multimediaPlayer->GetBufferLevel() < 4)
+  {
+    factor = 0.33;
+  } else if (this->m_multimediaPlayer->GetBufferLevel() >= 4 && this->m_multimediaPlayer->GetBufferLevel() < 8)
+  {
+    factor = 0.66;
+  } else if (this->m_multimediaPlayer->GetBufferLevel() >= 8 && this->m_multimediaPlayer->GetBufferLevel() < 16)
+  {
+    factor = 1.0;
+  } else {
+    factor = 1.2;
+  }
+
+  double last_download_speed = this->m_multimediaPlayer->GetLastDownloadBitRate();
 
   double highest_bitrate = 0.0;
 
   for (auto& keyValue : *(this->m_availableRepresentations))
   {
     const IRepresentation* rep = keyValue.second;
-    //std::cerr << "Rep=" << keyValue.first << " has bitrate " << rep->GetBandwidth() << std::endl;
-    if (rep->GetBandwidth() < last_download_speed)
+    std::cerr << "Rep=" << keyValue.first << " has bitrate " << rep->GetBandwidth() << std::endl;
+    if (rep->GetBandwidth() < last_download_speed*factor)
     {
       if (rep->GetBandwidth() > highest_bitrate)
       {
@@ -49,6 +64,10 @@ RateBasedAdaptationLogic::GetNextSegment(unsigned int current_segment_number)
       }
     }
   }
+
+  if (useRep == NULL)
+    useRep = GetLowestRepresentation();
+
 
   //std::cerr << "Representation used: " << useRep->GetId() << std::endl;
 

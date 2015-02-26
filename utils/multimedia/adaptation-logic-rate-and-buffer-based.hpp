@@ -25,21 +25,21 @@ namespace dash
 {
 namespace player
 {
-class RateBasedAdaptationLogic : public AdaptationLogic
+class RateAndBufferBasedAdaptationLogic : public AdaptationLogic
 {
 public:
-  RateBasedAdaptationLogic(MultimediaPlayer* mPlayer) : AdaptationLogic (mPlayer)
+  RateAndBufferBasedAdaptationLogic(MultimediaPlayer* mPlayer) : AdaptationLogic (mPlayer)
   {
   }
 
   virtual std::string GetName() const
   {
-    return "dash::player::RateBasedAdaptationLogic";
+    return "dash::player::RateAndBufferBasedAdaptationLogic";
   }
 
   static std::shared_ptr<AdaptationLogic> Create(MultimediaPlayer* mPlayer)
   {
-    return std::make_shared<RateBasedAdaptationLogic>(mPlayer);
+    return std::make_shared<RateAndBufferBasedAdaptationLogic>(mPlayer);
   }
 
   virtual ISegmentURL*
@@ -47,11 +47,11 @@ public:
 
 
 protected:
-  static RateBasedAdaptationLogic _staticLogic;
+  static RateAndBufferBasedAdaptationLogic _staticLogic;
 
-  RateBasedAdaptationLogic()
+  RateAndBufferBasedAdaptationLogic()
   {
-    ENSURE_ADAPTATION_LOGIC_REGISTERED(RateBasedAdaptationLogic);
+    ENSURE_ADAPTATION_LOGIC_REGISTERED(RateAndBufferBasedAdaptationLogic);
   }
 
 
