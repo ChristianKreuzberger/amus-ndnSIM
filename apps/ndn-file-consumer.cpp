@@ -151,6 +151,8 @@ FileConsumer::StartApplication() // Called at time specified by Start
     FILE* fp = fopen(m_outFile.c_str(), "w");
     fclose(fp);
   }
+  // create buffer (set to NULL for now)
+  m_localDataCache = NULL;
 
   // set start time
   _start_time = Simulator::Now().GetMilliSeconds ();
@@ -176,6 +178,12 @@ FileConsumer::StopApplication() // Called at time specified by Stop
   Simulator::Cancel(m_packetStatsUpdateEvent);
 
   m_sequenceStatus.clear();
+
+  if (m_localDataCache != NULL)
+  {
+    free(m_localDataCache);
+    m_localDataCache = NULL;
+  }
 
   // cleanup base stuff
   App::StopApplication();
@@ -555,6 +563,13 @@ FileConsumer::OnManifest(long fileSize)
   m_sequenceStatus.resize(ceil(m_fileSize/m_maxPayloadSize)+1);
 
 
+  if (!m_outFile.empty())
+  {
+    // create m_localDataCache
+    m_localDataCache = (uint8_t*)malloc(sizeof(uint8_t) * fileSize);
+  }
+
+
   long SampleRTT  = Simulator::Now().GetMilliSeconds() - m_manifestRequestTime;
 
 
@@ -573,15 +588,18 @@ FileConsumer::OnFileData(uint32_t seq_nr, const uint8_t* data, unsigned length)
   // write outfile if defined
   if (!m_outFile.empty())
   {
-    FILE * fp = fopen(m_outFile.c_str(), "ab");
+
+    // FILE * fp = fopen(m_outFile.c_str(), "ab");
     if (seq_nr != m_maxSeqNo)
     {
-      fwrite(data, sizeof(uint8_t), length, fp);
+      memcpy(m_localDataCache + seq_nr*m_maxPayloadSize, data, length);
+      //fwrite(data, sizeof(uint8_t), length, fp);
     } else
     {
-      fwrite(data, sizeof(uint8_t), m_fileSize % m_maxPayloadSize, fp);
+      memcpy(m_localDataCache + seq_nr*m_maxPayloadSize, data, m_fileSize % m_maxPayloadSize);
+      //fwrite(data, sizeof(uint8_t), m_fileSize % m_maxPayloadSize, fp);
     }
-    fclose(fp);
+    //fclose(fp);
   }
 
 
@@ -641,6 +659,14 @@ FileConsumer::OnFileReceived(unsigned status, unsigned length)
   m_finishedDownloadingFile = true;
   // do nothing here
   NS_LOG_DEBUG("Finally received the whole file!");
+
+  // write file to disk
+  if (!m_outFile.empty())
+  {
+    FILE* fp = fopen(m_outFile.c_str(), "w");
+    fwrite(m_localDataCache, sizeof(uint8_t), m_fileSize, fp);
+    fclose(fp);
+  }
 
   double downloadSpeed = CalculateDownloadSpeed();
   NS_LOG_DEBUG("Download finished after " << (_finished_time - _start_time) << "ms; AvgSpeed = " << downloadSpeed << " bytes per second.");

@@ -166,6 +166,7 @@ protected:
 
 
   std::vector<SequenceStatus> m_sequenceStatus;
+  uint8_t* m_localDataCache;
   std::map<uint32_t,EventId> m_chunkTimeoutEvents;
   std::map<uint32_t,long> m_sequenceSendTime;
 
