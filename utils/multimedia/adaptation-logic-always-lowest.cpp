@@ -16,7 +16,7 @@
  * ndnSIM, e.g., in COPYING.md file.  If not, see <http://www.gnu.org/licenses/>.
  **/
 
-#include "adaptation-logic.hpp"
+#include "adaptation-logic-always-lowest.hpp"
 #include "multimedia-player.hpp"
 
 
@@ -24,30 +24,9 @@ namespace dash
 {
 namespace player
 {
-ENSURE_ADAPTATION_LOGIC_INITIALIZED(AdaptationLogic);
 
+ENSURE_ADAPTATION_LOGIC_INITIALIZED(AlwaysLowestAdaptationLogic);
 
-
-AdaptationLogic::AdaptationLogic(MultimediaPlayer* mPlayer)
-{
-  this->m_multimediaPlayer = mPlayer;
-}
-
-
-
-AdaptationLogic::~AdaptationLogic()
-{
-#if defined(DEBUG) || defined(NS3_LOG_ENABLE)
-  std::cerr << "Adaptation Logic deconstructing..." << std::endl;
-#endif
-}
-
-
-void
-AdaptationLogic::SetAvailableRepresentations(std::map<std::string, IRepresentation*>* availableRepresentations)
-{
-  this->m_availableRepresentations = availableRepresentations;
-}
 
 
 }

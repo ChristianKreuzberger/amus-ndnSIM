@@ -16,40 +16,45 @@
  * ndnSIM, e.g., in COPYING.md file.  If not, see <http://www.gnu.org/licenses/>.
  **/
 
-#include "adaptation-logic.hpp"
-#include "multimedia-player.hpp"
+#ifndef DASH_ALWAYS_LOWEST_ADAPTATION_LOGIC
+#define DASH_ALWAYS_LOWEST_ADAPTATION_LOGIC
 
+#include "adaptation-logic.hpp"
 
 namespace dash
 {
 namespace player
 {
-ENSURE_ADAPTATION_LOGIC_INITIALIZED(AdaptationLogic);
-
-
-
-AdaptationLogic::AdaptationLogic(MultimediaPlayer* mPlayer)
+class AlwaysLowestAdaptationLogic : public AdaptationLogic
 {
-  this->m_multimediaPlayer = mPlayer;
+public:
+  AlwaysLowestAdaptationLogic(MultimediaPlayer* mPlayer) : AdaptationLogic (mPlayer)
+  {
+  }
+
+  virtual std::string GetName() const
+  {
+    return "dash::player::AlwaysLowestAdaptationLogic";
+  }
+
+  static std::shared_ptr<AdaptationLogic> Create(MultimediaPlayer* mPlayer)
+  {
+    return std::make_shared<AlwaysLowestAdaptationLogic>(mPlayer);
+  }
+
+
+protected:
+  static AlwaysLowestAdaptationLogic _staticLogic;
+
+  AlwaysLowestAdaptationLogic()
+  {
+    ENSURE_ADAPTATION_LOGIC_REGISTERED(AlwaysLowestAdaptationLogic);
+  }
+
+
+};
+}
 }
 
 
-
-AdaptationLogic::~AdaptationLogic()
-{
-#if defined(DEBUG) || defined(NS3_LOG_ENABLE)
-  std::cerr << "Adaptation Logic deconstructing..." << std::endl;
-#endif
-}
-
-
-void
-AdaptationLogic::SetAvailableRepresentations(std::map<std::string, IRepresentation*>* availableRepresentations)
-{
-  this->m_availableRepresentations = availableRepresentations;
-}
-
-
-}
-
-}
+#endif // DASH_ALWAYS_LOWEST_ADAPTATION_LOGIC
