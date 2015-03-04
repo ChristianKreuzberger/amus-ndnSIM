@@ -209,7 +209,6 @@ MultimediaConsumer<Parent>::OnMpdFile()
     return;
   }
 
-
   // we are assuming there is only 1 period, get the first one
   IPeriod *currentPeriod = mpd->GetPeriods().at(0);
 
@@ -222,15 +221,20 @@ MultimediaConsumer<Parent>::OnMpdFile()
     if (baseUrls.size() == 1)
     {
       m_baseURL = baseUrls.at(0)->GetUrl();
-    } else
+    }
+    else
     {
       int randUrl = rand() % baseUrls.size();
       std::cerr << "Mutliple base URLs available, selecting a random one... " << std::endl;
       m_baseURL = baseUrls.at(randUrl)->GetUrl();
     }
 
+    if(m_baseURL.substr (0,7).compare ("http://") == 0)
+      m_baseURL = m_baseURL.substr(6,m_baseURL.length ());
+
     std::cerr << "Base URL: " << m_baseURL << std::endl;
-  } else
+  }
+  else
   {
     NS_LOG_ERROR("No Base URL provided in MPD file... exiting.");
     return;
