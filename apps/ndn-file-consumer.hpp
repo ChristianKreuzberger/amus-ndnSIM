@@ -64,7 +64,7 @@ public:
   GetTypeId();
 
 
-  static void
+  static bool
   DecompressFile ( std::string source, std::string filename );
 
   /**

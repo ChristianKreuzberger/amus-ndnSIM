@@ -188,10 +188,11 @@ MultimediaConsumer<Parent>::OnMpdFile()
   if (m_tempMpdFile.find(".gz") != std::string::npos)
   {
     // file was compressed, decompress it
-    std::cerr << "GZIP MPD File " << m_tempMpdFile << " received. Decompressing..." << std::endl;
+    NS_LOG_DEBUG("GZIP MPD File " << m_tempMpdFile << " received. Decompressing...");
     std::string newFileName = m_tempMpdFile.substr(0, m_tempMpdFile.find(".gz"));
-    FileConsumer::DecompressFile(m_tempMpdFile, newFileName);
-    m_tempMpdFile = newFileName;
+
+    if(FileConsumer::DecompressFile(m_tempMpdFile, newFileName))
+      m_tempMpdFile = newFileName;
   }
 
 

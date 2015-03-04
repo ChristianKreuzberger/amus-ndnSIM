@@ -690,7 +690,7 @@ FileConsumer::OnFileReceived(unsigned status, unsigned length)
 }
 
 
-void
+bool
 FileConsumer::DecompressFile ( std::string source, std::string filename )
 {
   std::ifstream file( source.c_str(), std::ios_base::in | std::ios_base::binary ); //Creates the input stream
@@ -699,7 +699,7 @@ FileConsumer::DecompressFile ( std::string source, std::string filename )
   if ( !file )
   {
    std::cerr<< "Can't open file: " << source << std::endl;
-   return;
+   return false;
   }
 
   try
@@ -712,8 +712,11 @@ FileConsumer::DecompressFile ( std::string source, std::string filename )
   }
   catch(std::exception& e)
   {
-    std::cerr << e.what() << std::endl;
+    //std::cerr << e.what() << std::endl;
+    NS_LOG_DEBUG(e.what() << " Assuming file was not zipped!");
+    return false;
   }
+  return true;
 }
 
 
