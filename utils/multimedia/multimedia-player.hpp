@@ -21,6 +21,7 @@
 #define DASH_MULTIMEDIA_PLAYER
 
 #include "adaptation-logic.hpp"
+#include "multimediabuffer.hpp"
 
 #include <string>
 #include <typeinfo>
@@ -37,18 +38,18 @@ class MultimediaPlayer
 {
 friend class AdaptationLogic;
 public:
-  MultimediaPlayer();
-  MultimediaPlayer(std::string AdaptationLogicStr);
+  //zMultimediaPlayer();
+  MultimediaPlayer(std::string AdaptationLogicStr, unsigned int maxBufferedSeconds);
   ~MultimediaPlayer();
 
-  void
-  AddToBuffer(unsigned int seconds);
+  bool AddToBuffer(unsigned int segmentNr, const dash::mpd::IRepresentation* usedRepresentation);
+  bool EnoughSpaceInBuffer(unsigned int segmentNr, const dash::mpd::IRepresentation* usedRepresentation);
 
   unsigned int
   GetBufferLevel();
 
-  bool
-  ConsumeFromBuffer(unsigned int seconds);
+  MultimediaBuffer::BufferRepresentationEntry
+  ConsumeFromBuffer();
 
   void
   SetAvailableRepresentations(std::map<std::string, IRepresentation*>* availableRepresentations);
@@ -63,7 +64,7 @@ public:
   GetLastDownloadBitRate();
 
 protected:
-  unsigned int m_buffer;
+  MultimediaBuffer* m_buffer;
   double m_lastBitrate;
   std::shared_ptr<AdaptationLogic> m_adaptLogic;
   std::map<std::string, IRepresentation*>* m_availableRepresentations;

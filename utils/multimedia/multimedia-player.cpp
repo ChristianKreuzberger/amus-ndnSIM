@@ -25,11 +25,10 @@ namespace dash
 {
 namespace player
 {
-MultimediaPlayer::MultimediaPlayer() : MultimediaPlayer("dash::player::AdaptationLogic")
+/*MultimediaPlayer::MultimediaPlayer() : MultimediaPlayer("dash::player::AdaptationLogic")
 {
   m_lastBitrate = 0.0;
-}
-
+}*/
 
 MultimediaPlayer::~MultimediaPlayer()
 {
@@ -37,10 +36,14 @@ MultimediaPlayer::~MultimediaPlayer()
   std::cerr << "Deleting MultimediaPlayer;";
 #endif
   m_adaptLogic = nullptr;
+
+  if(m_buffer)
+    delete(m_buffer);
 }
 
-MultimediaPlayer::MultimediaPlayer(std::string AdaptationLogicStr) : m_buffer(0)
+MultimediaPlayer::MultimediaPlayer(std::string AdaptationLogicStr, unsigned int maxBufferedSeconds)
 {
+  m_buffer = new MultimediaBuffer(maxBufferedSeconds);
   std::shared_ptr<AdaptationLogic> aLogic = AdaptationLogicFactory::Create(AdaptationLogicStr, this);
 
   if (aLogic == nullptr)
@@ -74,29 +77,29 @@ MultimediaPlayer::SetAvailableRepresentations(std::map<std::string, IRepresentat
 }
 
 
-void
-MultimediaPlayer::AddToBuffer(unsigned int seconds)
+bool
+MultimediaPlayer::AddToBuffer(unsigned int segmentNr, const dash::mpd::IRepresentation *usedRepresentation)
 {
-  m_buffer += seconds;
+  return m_buffer->addToBuffer (segmentNr, usedRepresentation);
+}
+
+bool
+MultimediaPlayer::EnoughSpaceInBuffer(unsigned int segmentNr, const dash::mpd::IRepresentation *usedRepresentation)
+{
+  return m_buffer->enoughSpaceInBuffer (segmentNr, usedRepresentation);
 }
 
 
 unsigned int
 MultimediaPlayer::GetBufferLevel()
 {
-  return m_buffer;
+  return m_buffer->getBufferedSeconds ();
 }
 
 
-bool
-MultimediaPlayer::ConsumeFromBuffer(unsigned int seconds)
+MultimediaBuffer::BufferRepresentationEntry MultimediaPlayer::ConsumeFromBuffer()
 {
-  if (m_buffer >= seconds)
-  {
-    m_buffer -= seconds;
-    return true;
-  }
-  return false;
+  return m_buffer->consumeFromBuffer ();
 }
 
 

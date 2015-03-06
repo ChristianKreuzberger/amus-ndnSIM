@@ -134,12 +134,11 @@ MultimediaConsumer<Parent>::StartApplication() // Called at time specified by St
   m_freezeStartTime = 0;
 
   m_currentDownloadType = MPD;
-  m_curSegmentNumber = 0;
   m_startTime = Simulator::Now().GetMilliSeconds();
 
   NS_LOG_DEBUG("Trying to instantiate MultimediaPlayer(" << m_adaptationLogicStr << ")");
 
-  mPlayer = new dash::player::MultimediaPlayer(m_adaptationLogicStr);
+  mPlayer = new dash::player::MultimediaPlayer(m_adaptationLogicStr, m_maxBufferedSeconds);
 
   NS_ASSERT_MSG(mPlayer->GetAdaptationLogic() != nullptr,
           "Could not initialize adaptation logic...");
@@ -287,8 +286,6 @@ MultimediaConsumer<Parent>::OnMpdFile()
   // reps.at(0)->GetSegmentList()->GetDuration();
   std::cerr << "Period Duration:" << reps.at(0)->GetSegmentList()->GetDuration() << std::endl;
 
-  m_segmentDurationInSeconds = reps.at(0)->GetSegmentList()->GetDuration();
-
   bool startRepresentationSelected = false;
 
   std::string firstRepresentationId = "";
@@ -423,7 +420,7 @@ template<class Parent>
 void
 MultimediaConsumer<Parent>::OnMultimediaFile()
 {
-  std::cerr << "Received Multimedia File: " << super::m_interestName << std::endl;
+  std::cerr << "On Multimedia File: " << super::m_interestName << std::endl;
 
   // get the current representation id
   // and check if this was an init segment
@@ -448,15 +445,22 @@ MultimediaConsumer<Parent>::OnMultimediaFile()
 
     double downloadSpeed = super::CalculateDownloadSpeed() * 8;
     mPlayer->SetLastDownloadBitRate(downloadSpeed);
-    mPlayer->AddToBuffer(m_segmentDurationInSeconds);
 
-    m_curSegmentNumber++;
+    if(mPlayer->EnoughSpaceInBuffer(requestedSegmentNr, requestedRepresentation))
+    {
+      if(mPlayer->AddToBuffer(requestedSegmentNr, requestedRepresentation))
+        std::cerr << "Segment Accapted for Buffering\n" << std::endl;
+      else
+        std::cerr << "Segment Rejected for Buffering\n" << std::endl;
+    }
+   else
+   {
+     Simulator::Schedule(Seconds(1.0), &MultimediaConsumer<Parent>::OnMultimediaFile, this);
+   }
   }
 
   m_currentDownloadType = Segment;
   ScheduleDownloadOfSegment();
-
-  //
 }
 
 
@@ -518,27 +522,29 @@ template<class Parent>
 void
 MultimediaConsumer<Parent>::DownloadSegment()
 {
-  if (m_curSegmentNumber >= m_availableRepresentations[m_curRepId]->GetSegmentList()->GetSegmentURLs().size())
-  {
-    std::cerr << "No more segments available for download! " << std::endl;
-    m_hasDownloadedAllSegments = true;
-    return;
-  }
-
-  if (mPlayer->GetBufferLevel() >= m_maxBufferedSeconds)
+  // Not needed on Buffer insert will block!
+  /*if (mPlayer->GetBufferLevel() >= m_maxBufferedSeconds)
   {
     NS_LOG_DEBUG("Player Buffer=" << mPlayer->GetBufferLevel() << ", MaxBuffer= " << m_maxBufferedSeconds << ", pausing download...");
     // we can wait before we need to downlaod something again - but for how long?
     // seems that half of segment-length should be good
 
-    Simulator::Schedule(Seconds((double)this->m_segmentDurationInSeconds / 2.0), &MultimediaConsumer<Parent>::DownloadSegment, this);
+    Simulator::Schedule(Seconds(1.0), &MultimediaConsumer<Parent>::DownloadSegment, this);
     return;
-  }
-
+  }*/
 
   // get segment number and rep id
-  dash::mpd::ISegmentURL* segment = mPlayer->GetAdaptationLogic()->GetNextSegment(m_curSegmentNumber);
-          // m_availableRepresentations[m_curRepId]->GetSegmentList()->GetSegmentURLs().at(m_curSegmentNumber);
+  requestedRepresentation = NULL;
+  requestedSegmentNr = 0;
+  dash::mpd::ISegmentURL* segment = mPlayer->GetAdaptationLogic()->GetNextSegment(&requestedSegmentNr, &requestedRepresentation);
+
+
+  if (segment == NULL)
+  {
+    NS_LOG_DEBUG("No more segments available for download!");
+    m_hasDownloadedAllSegments = true;
+    return;
+  }
 
 
   super::StopApplication();
@@ -577,8 +583,11 @@ MultimediaConsumer<Parent>::DoPlay()
     return;
   }
 
-  if (mPlayer->ConsumeFromBuffer(m_segmentDurationInSeconds))
+  dash::player::MultimediaBuffer::BufferRepresentationEntry entry = mPlayer->ConsumeFromBuffer();
+  double consumedSeconds = entry.segmentDuration;
+  if ( consumedSeconds > 0)
   {
+    fprintf(stderr, "Consumed Segment %d, with Rep %s for %f seconds\n",entry.segmentNumber,entry.repId.c_str(), entry.segmentDuration);
     if (!m_hasStartedPlaying)
     {
       // we havent started yet, so we can measure the start-up delay until now
@@ -595,10 +604,11 @@ MultimediaConsumer<Parent>::DoPlay()
       NS_LOG_DEBUG("Freeze Of " << freezeTime << " milliseconds is over!");
     }
 
-    NS_LOG_DEBUG("Consuming " << m_segmentDurationInSeconds << " seconds from buffer...");
-    // this means we don't need to consume anything for m_segmentDurationInSeconds seconds.
-    SchedulePlay(1.0 * m_segmentDurationInSeconds);
-  } else {
+    NS_LOG_DEBUG("Consuming " << consumedSeconds << " seconds from buffer...");
+    SchedulePlay(consumedSeconds);
+  }
+  else
+  {
     // could not consume, means buffer is empty
     if (m_freezeStartTime == 0 && m_hasStartedPlaying == true)
     {

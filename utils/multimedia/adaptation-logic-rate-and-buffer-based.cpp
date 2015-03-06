@@ -25,10 +25,10 @@ namespace dash
 namespace player
 {
 
-ENSURE_ADAPTATION_LOGIC_INITIALIZED(RateAndBufferBasedAdaptationLogic);
+ENSURE_ADAPTATION_LOGIC_INITIALIZED(RateAndBufferBasedAdaptationLogic)
 
 ISegmentURL*
-RateAndBufferBasedAdaptationLogic::GetNextSegment(unsigned int current_segment_number)
+RateAndBufferBasedAdaptationLogic::GetNextSegment(unsigned int *requested_segment_number, const dash::mpd::IRepresentation **usedRepresentation)
 {
   const IRepresentation* useRep = NULL;;
 
@@ -68,11 +68,12 @@ RateAndBufferBasedAdaptationLogic::GetNextSegment(unsigned int current_segment_n
   if (useRep == NULL)
     useRep = GetLowestRepresentation();
 
-
   //std::cerr << "Representation used: " << useRep->GetId() << std::endl;
 
   //IRepresentation* rep = (this->m_availableRepresentations->begin()->second);
-  return useRep->GetSegmentList()->GetSegmentURLs().at(current_segment_number);
+  *usedRepresentation = useRep;
+  *requested_segment_number = currentSegmentNumber;
+  return useRep->GetSegmentList()->GetSegmentURLs().at(currentSegmentNumber++);
 }
 
 }

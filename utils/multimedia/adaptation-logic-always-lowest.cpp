@@ -25,13 +25,15 @@ namespace dash
 namespace player
 {
 
-ENSURE_ADAPTATION_LOGIC_INITIALIZED(AlwaysLowestAdaptationLogic);
+ENSURE_ADAPTATION_LOGIC_INITIALIZED(AlwaysLowestAdaptationLogic)
 
 ISegmentURL*
-AlwaysLowestAdaptationLogic::GetNextSegment(unsigned int current_segment_number)
+AlwaysLowestAdaptationLogic::GetNextSegment(unsigned int *requested_segment_number, const dash::mpd::IRepresentation **usedRepresentation)
 {
   IRepresentation* rep = GetLowestRepresentation();
-  return rep->GetSegmentList()->GetSegmentURLs().at(current_segment_number);
+  *usedRepresentation = rep;
+  *requested_segment_number = currentSegmentNumber;
+  return rep->GetSegmentList()->GetSegmentURLs().at(currentSegmentNumber++);
 }
 
 }

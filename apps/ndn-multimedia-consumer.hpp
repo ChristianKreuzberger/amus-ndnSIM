@@ -121,7 +121,6 @@ protected:
 
 
   std::vector<std::string /* representation_id */> m_downloadedRepresentations;
-  unsigned int m_curSegmentNumber;
   int64_t m_startTime;
 
   int64_t m_freezeStartTime;
@@ -132,9 +131,8 @@ protected:
   bool m_hasStartedPlaying;
   bool m_hasDownloadedAllSegments;
 
-  unsigned int m_segmentDurationInSeconds;
-
-
+  const dash::mpd::IRepresentation* requestedRepresentation;
+  unsigned int requestedSegmentNr;
 
   void SchedulePlay(double wait_time = MULTIMEDIA_CONSUMER_LOOP_TIMER);
   void DoPlay();

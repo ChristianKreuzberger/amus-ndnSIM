@@ -30,6 +30,7 @@ class RateAndBufferBasedAdaptationLogic : public AdaptationLogic
 public:
   RateAndBufferBasedAdaptationLogic(MultimediaPlayer* mPlayer) : AdaptationLogic (mPlayer)
   {
+    currentSegmentNumber = 0;
   }
 
   virtual std::string GetName() const
@@ -43,7 +44,7 @@ public:
   }
 
   virtual ISegmentURL*
-  GetNextSegment(unsigned int current_segment_number);
+  GetNextSegment(unsigned int* requested_segment_number, const dash::mpd::IRepresentation** usedRepresentation);
 
 
 protected:
@@ -53,6 +54,8 @@ protected:
   {
     ENSURE_ADAPTATION_LOGIC_REGISTERED(RateAndBufferBasedAdaptationLogic);
   }
+
+  unsigned int currentSegmentNumber;
 
 
 };

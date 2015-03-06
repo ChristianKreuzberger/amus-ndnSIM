@@ -25,7 +25,7 @@ namespace dash
 namespace player
 {
 
-ENSURE_ADAPTATION_LOGIC_INITIALIZED(ManualAdaptationLogic);
+ENSURE_ADAPTATION_LOGIC_INITIALIZED(ManualAdaptationLogic)
 
 
 

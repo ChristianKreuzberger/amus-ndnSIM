@@ -24,8 +24,7 @@ namespace dash
 {
 namespace player
 {
-ENSURE_ADAPTATION_LOGIC_INITIALIZED(AdaptationLogic);
-
+ENSURE_ADAPTATION_LOGIC_INITIALIZED(AdaptationLogic)
 
 
 AdaptationLogic::AdaptationLogic(MultimediaPlayer* mPlayer)
@@ -52,8 +51,10 @@ AdaptationLogic::SetAvailableRepresentations(std::map<std::string, IRepresentati
 
 
 ISegmentURL*
-AdaptationLogic::GetNextSegment(unsigned int current_segment_number)
+AdaptationLogic::GetNextSegment(unsigned int *requested_segment_number, const dash::mpd::IRepresentation **usedRepresentation)
 {
+  *requested_segment_number = 0;
+  *usedRepresentation = NULL;
   return NULL;
 }
 

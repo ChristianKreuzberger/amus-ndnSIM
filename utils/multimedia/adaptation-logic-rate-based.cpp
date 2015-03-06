@@ -25,14 +25,14 @@ namespace dash
 namespace player
 {
 
-ENSURE_ADAPTATION_LOGIC_INITIALIZED(RateBasedAdaptationLogic);
+ENSURE_ADAPTATION_LOGIC_INITIALIZED(RateBasedAdaptationLogic)
 
 ISegmentURL*
-RateBasedAdaptationLogic::GetNextSegment(unsigned int current_segment_number)
+RateBasedAdaptationLogic::GetNextSegment(unsigned int *requested_segment_number, const dash::mpd::IRepresentation **usedRepresentation)
 {
   double last_download_speed = this->m_multimediaPlayer->GetLastDownloadBitRate();
 
-  const IRepresentation* useRep;
+  const IRepresentation* useRep = NULL;
 
   double highest_bitrate = 0.0;
 
@@ -50,12 +50,14 @@ RateBasedAdaptationLogic::GetNextSegment(unsigned int current_segment_number)
     }
   }
 
-  //std::cerr << "Representation used: " << useRep->GetId() << std::endl;
+  if (useRep == NULL)
+    useRep = GetLowestRepresentation();
 
   //IRepresentation* rep = (this->m_availableRepresentations->begin()->second);
-  return useRep->GetSegmentList()->GetSegmentURLs().at(current_segment_number);
+  *usedRepresentation = useRep;
+  *requested_segment_number = currentSegmentNumber;
+  return useRep->GetSegmentList()->GetSegmentURLs().at(currentSegmentNumber++);
 }
-
 }
 
 }

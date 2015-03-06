@@ -63,7 +63,7 @@ public:
   void SetAvailableRepresentations(std::map<std::string, IRepresentation*>* availableRepresentations);
 
   virtual ISegmentURL*
-  GetNextSegment(unsigned int current_segment_number);
+  GetNextSegment(unsigned int* requested_segment_number, const dash::mpd::IRepresentation** usedRepresentation);
 
 
 protected:
