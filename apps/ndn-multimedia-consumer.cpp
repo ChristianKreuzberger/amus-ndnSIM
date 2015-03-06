@@ -453,10 +453,11 @@ MultimediaConsumer<Parent>::OnMultimediaFile()
       else
         std::cerr << "Segment Rejected for Buffering\n" << std::endl;
     }
-   else
-   {
-     Simulator::Schedule(Seconds(1.0), &MultimediaConsumer<Parent>::OnMultimediaFile, this);
-   }
+    else
+    {
+      Simulator::Schedule(Seconds(1.0), &MultimediaConsumer<Parent>::OnMultimediaFile, this);
+      return;
+    }
   }
 
   m_currentDownloadType = Segment;
