@@ -90,16 +90,30 @@ MultimediaPlayer::EnoughSpaceInBuffer(unsigned int segmentNr, const dash::mpd::I
 }
 
 
-unsigned int
-MultimediaPlayer::GetBufferLevel()
+double
+MultimediaPlayer::GetBufferLevel(std::string repId)
 {
-  return m_buffer->getBufferedSeconds ();
+  if(repId.compare ("NULL") == 0)
+    return m_buffer->getBufferedSeconds ();
+  else
+    return m_buffer->getBufferedSeconds (repId);
 }
 
+unsigned int
+MultimediaPlayer::getHighestBufferedSegmentNr(std::string repId)
+{
+  return m_buffer->getHighestBufferedSegmentNr (repId);
+}
 
 MultimediaBuffer::BufferRepresentationEntry MultimediaPlayer::ConsumeFromBuffer()
 {
   return m_buffer->consumeFromBuffer ();
+}
+
+unsigned int
+MultimediaPlayer::nextSegmentNrToConsume ()
+{
+  return m_buffer->nextSegmentNrToBeConsumed ();
 }
 
 
@@ -115,7 +129,6 @@ MultimediaPlayer::GetLastDownloadBitRate()
 {
   return this->m_lastBitrate;
 }
-
 
 
 }

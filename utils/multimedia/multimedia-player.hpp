@@ -45,8 +45,10 @@ public:
   bool AddToBuffer(unsigned int segmentNr, const dash::mpd::IRepresentation* usedRepresentation);
   bool EnoughSpaceInBuffer(unsigned int segmentNr, const dash::mpd::IRepresentation* usedRepresentation);
 
-  unsigned int
-  GetBufferLevel();
+  double GetBufferLevel(std::string repId = std::string("NULL"));
+  unsigned int getHighestBufferedSegmentNr(std::string repId);
+  unsigned int nextSegmentNrToConsume();
+
 
   MultimediaBuffer::BufferRepresentationEntry
   ConsumeFromBuffer();

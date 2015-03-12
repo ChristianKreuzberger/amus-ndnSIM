@@ -60,20 +60,18 @@ public:
     return "dash::player::AdaptationLogic";
   }
 
-  void SetAvailableRepresentations(std::map<std::string, IRepresentation*>* availableRepresentations);
+  virtual void SetAvailableRepresentations(std::map<std::string, IRepresentation*>* availableRepresentations);
 
   virtual ISegmentURL*
-  GetNextSegment(unsigned int* requested_segment_number, const dash::mpd::IRepresentation** usedRepresentation);
-
-
-protected:
-  MultimediaPlayer* m_multimediaPlayer;
-  std::map<std::string, IRepresentation*>* m_availableRepresentations;
+  GetNextSegment(unsigned int* requested_segment_number, const dash::mpd::IRepresentation** usedRepresentation, bool* hasDownloadedAllSegments);
+  unsigned int getTotalSegments();
 
   IRepresentation*
   GetLowestRepresentation();
 
-
+protected:
+  MultimediaPlayer* m_multimediaPlayer;
+  std::map<std::string, IRepresentation*>* m_availableRepresentations;
 
   static AdaptationLogic _staticLogic;
 

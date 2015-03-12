@@ -45,9 +45,12 @@ public:
   bool addToBuffer(unsigned int segmentNumber, const dash::mpd::IRepresentation* usedRepresentation);
   bool enoughSpaceInBuffer(unsigned int segmentNumber, const dash::mpd::IRepresentation* usedRepresentation);
   BufferRepresentationEntry consumeFromBuffer();
-  bool isFull(double additional_seconds = 0.0);
+  bool isFull(std::string repId, double additional_seconds = 0.0);
   bool isEmpty();
-  double getBufferedSeconds();
+  double getBufferedSeconds(); //returns the buffered seconds for the "lowest" representation
+  double getBufferedSeconds(std::string repId); //returns the buffered seconds for representation = repId
+  unsigned int getHighestBufferedSegmentNr(std::string repId);
+  unsigned int nextSegmentNrToBeConsumed(){return toConsumeSegmentNumber;}
 
 protected:
   double maxBufferedSeconds;

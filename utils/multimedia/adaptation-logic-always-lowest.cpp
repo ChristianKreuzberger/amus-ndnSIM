@@ -28,11 +28,12 @@ namespace player
 ENSURE_ADAPTATION_LOGIC_INITIALIZED(AlwaysLowestAdaptationLogic)
 
 ISegmentURL*
-AlwaysLowestAdaptationLogic::GetNextSegment(unsigned int *requested_segment_number, const dash::mpd::IRepresentation **usedRepresentation)
+AlwaysLowestAdaptationLogic::GetNextSegment(unsigned int *requested_segment_number, const dash::mpd::IRepresentation **usedRepresentation, bool *hasDownloadedAllSegments)
 {
   IRepresentation* rep = GetLowestRepresentation();
   *usedRepresentation = rep;
   *requested_segment_number = currentSegmentNumber;
+  *hasDownloadedAllSegments = false;
   return rep->GetSegmentList()->GetSegmentURLs().at(currentSegmentNumber++);
 }
 

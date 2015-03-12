@@ -16,36 +16,42 @@ bool MultimediaBuffer::addToBuffer(unsigned int segmentNumber, const dash::mpd::
   if(toBufferSegmentNumber < segmentNumber)
     return false;
 
+  //fprintf(stderr, "toBufferSegmentNumber=%d < segmentNumber=%d\n",toBufferSegmentNumber,segmentNumber);
+
   //determine segment duration
   double duration = (double) usedRepresentation->GetSegmentList()->GetDuration();
   duration /= (double) usedRepresentation->GetSegmentList()->GetTimescale ();
 
-  //check if segment fits in buffer
-  if(isFull(duration))
-    return false;
-
   // Check if segment has depIds
   if(usedRepresentation->GetDependencyId ().size() > 0)
   {
-    // if so find the corrent map
+    // if so find the correct map
     MBuffer::iterator it = buff.find (segmentNumber);
     if(it == buff.end ())
       return false;
 
     BufferRepresentationEntryMap map = it->second;
 
-    for(std::vector<std::string>::const_iterator it = usedRepresentation->GetDependencyId ().begin ();
-        it !=  usedRepresentation->GetDependencyId ().end (); it++)
+    for(std::vector<std::string>::const_iterator k = usedRepresentation->GetDependencyId ().begin ();
+        k !=  usedRepresentation->GetDependencyId ().end (); k++)
     {
       //depId not found we can not add this layer
-      if(map.find (*it) == map.end ());
-         return false;
+      if(map.find ((*k)) == map.end ())
+      {
+        //fprintf(stderr, "Could not find '%s' in map\n", (*k).c_str());
+        return false;
+      }
     }
+  }
+  else
+  {
+    //check if segment with layer == 0 fits in buffer
+    if(isFull(usedRepresentation->GetId (),duration))
+      return false;
   }
 
   // Add segment to buffer
-
-  fprintf(stderr, "Inserted something for Segment %d in Buffer\n", segmentNumber);
+  //fprintf(stderr, "Inserted something for Segment %d in Buffer\n", segmentNumber);
 
   MultimediaBuffer::BufferRepresentationEntry entry;
   entry.repId = usedRepresentation->GetId ();
@@ -65,15 +71,15 @@ bool MultimediaBuffer::enoughSpaceInBuffer(unsigned int segmentNumber, const das
   double duration = (double) usedRepresentation->GetSegmentList()->GetDuration();
   duration /= (double) usedRepresentation->GetSegmentList()->GetTimescale ();
 
-  if(isFull(duration))
+  if(isFull(usedRepresentation->GetId (),duration))
     return false;
 
   return true;
 }
 
-bool MultimediaBuffer::isFull(double additional_seconds)
+bool MultimediaBuffer::isFull(std::string repId, double additional_seconds)
 {
-  if(maxBufferedSeconds < additional_seconds+getBufferedSeconds())
+  if(maxBufferedSeconds < additional_seconds+getBufferedSeconds(repId))
     return true;
   return false;
 }
@@ -91,21 +97,41 @@ double MultimediaBuffer::getBufferedSeconds()
   double bufferSize = 0.0;
 
   for(MBuffer::iterator it = buff.begin (); it != buff.end (); ++it)
-  {
-   // actually dont need this second check...
-   /*for(BufferRepresentationEntryMap::iterator k = it->second.begin(); k != it->second.end(); ++k)
-    {
-      if(k->second.depIds.size() == 0)
-      {
-        bufferSize += k->second.segmentDuration;
-        break;
-      }
-    }*/
     bufferSize += it->second.begin()->second.segmentDuration;
-  }
-  fprintf(stderr, "BufferSize = %f\n", bufferSize);
+
+  //fprintf(stderr, "BufferSize for lowestRep = %f\n", bufferSize);
   return bufferSize;
 }
+
+double MultimediaBuffer::getBufferedSeconds(std::string repId)
+{
+  double bufferSize = 0.0;
+  for(MBuffer::iterator it = buff.begin (); it != buff.end (); ++it)
+  {
+    BufferRepresentationEntryMap::iterator k = it->second.find(repId);
+    if(k != it->second.end())
+    {
+      bufferSize += k->second.segmentDuration;
+    }
+  }
+  //fprintf(stderr, "BufferSize for rep[%s] = %f\n", repId.c_str (),bufferSize);
+  return bufferSize;
+}
+
+unsigned int MultimediaBuffer::getHighestBufferedSegmentNr(std::string repId)
+{
+  //std::map should be orderd based on operator<, so iterate from the back
+  for(MBuffer::reverse_iterator it = buff.rbegin (); it != buff.rend (); ++it)
+  {
+    BufferRepresentationEntryMap::iterator k = it->second.find(repId);
+    if(k != it->second.end())
+    {
+      return k->second.segmentNumber;
+    }
+  }
+  return 0;
+}
+
 
 MultimediaBuffer::BufferRepresentationEntry MultimediaBuffer::consumeFromBuffer()
 {
@@ -152,3 +178,4 @@ MultimediaBuffer::BufferRepresentationEntry MultimediaBuffer::getHighestConsumab
   }
   return consumableEntry;
 }
+

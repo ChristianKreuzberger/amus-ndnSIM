@@ -28,7 +28,7 @@ namespace player
 ENSURE_ADAPTATION_LOGIC_INITIALIZED(RateBasedAdaptationLogic)
 
 ISegmentURL*
-RateBasedAdaptationLogic::GetNextSegment(unsigned int *requested_segment_number, const dash::mpd::IRepresentation **usedRepresentation)
+RateBasedAdaptationLogic::GetNextSegment(unsigned int *requested_segment_number, const dash::mpd::IRepresentation **usedRepresentation, bool *hasDownloadedAllSegments)
 {
   double last_download_speed = this->m_multimediaPlayer->GetLastDownloadBitRate();
 
@@ -56,6 +56,7 @@ RateBasedAdaptationLogic::GetNextSegment(unsigned int *requested_segment_number,
   //IRepresentation* rep = (this->m_availableRepresentations->begin()->second);
   *usedRepresentation = useRep;
   *requested_segment_number = currentSegmentNumber;
+  *hasDownloadedAllSegments = false;
   return useRep->GetSegmentList()->GetSegmentURLs().at(currentSegmentNumber++);
 }
 }

@@ -51,10 +51,11 @@ AdaptationLogic::SetAvailableRepresentations(std::map<std::string, IRepresentati
 
 
 ISegmentURL*
-AdaptationLogic::GetNextSegment(unsigned int *requested_segment_number, const dash::mpd::IRepresentation **usedRepresentation)
+AdaptationLogic::GetNextSegment(unsigned int *requested_segment_number, const dash::mpd::IRepresentation **usedRepresentation, bool *hasDownloadedAllSegments)
 {
   *requested_segment_number = 0;
   *usedRepresentation = NULL;
+  *hasDownloadedAllSegments = false;
   return NULL;
 }
 
@@ -65,8 +66,13 @@ AdaptationLogic::GetLowestRepresentation()
     return (this->m_availableRepresentations->begin()->second);
 }
 
+// we assume that in all represntation the same amount of segments exists..
+unsigned int AdaptationLogic::getTotalSegments()
+{
+  return m_availableRepresentations->begin()->second->GetSegmentList ()->GetSegmentURLs().size();
+}
+
 
 
 }
-
 }

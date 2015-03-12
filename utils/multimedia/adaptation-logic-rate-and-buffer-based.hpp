@@ -44,7 +44,7 @@ public:
   }
 
   virtual ISegmentURL*
-  GetNextSegment(unsigned int* requested_segment_number, const dash::mpd::IRepresentation** usedRepresentation);
+  GetNextSegment(unsigned int* requested_segment_number, const dash::mpd::IRepresentation** usedRepresentation, bool* hasDownloadedAllSegments);
 
 
 protected:

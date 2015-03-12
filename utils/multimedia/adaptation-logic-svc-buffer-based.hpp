@@ -2,6 +2,10 @@
 #define ADAPTATIONLOGICSVCBUFFERBASED_HPP
 
 #include "adaptation-logic.hpp"
+#include <cmath>
+
+#define BUFFER_MIN_SIZE 6 // in seconds
+#define BUFFER_ALPHA 4 // in seconds
 
 namespace dash
 {
@@ -12,7 +16,8 @@ class SVCBufferBasedAdaptationLogic : public AdaptationLogic
 public:
   SVCBufferBasedAdaptationLogic(MultimediaPlayer* mPlayer) : AdaptationLogic (mPlayer)
   {
-    currentSegmentNumber=0;
+    alpha = BUFFER_ALPHA;
+    gamma = BUFFER_MIN_SIZE;
   }
 
   virtual std::string GetName() const
@@ -25,11 +30,18 @@ public:
     return std::make_shared<SVCBufferBasedAdaptationLogic>(mPlayer);
   }
 
+  virtual void SetAvailableRepresentations(std::map<std::string, IRepresentation*>* availableRepresentations);
+
   virtual ISegmentURL*
-  GetNextSegment(unsigned int* requested_segment_number, const dash::mpd::IRepresentation** usedRepresentation);
+  GetNextSegment(unsigned int* requested_segment_number, const dash::mpd::IRepresentation** usedRepresentation,  bool* hasDownloadedAllSegments);
 
 
 protected:
+
+  void orderRepresentationsByDepIds();
+  unsigned int desired_buffer_size(int i, int i_curr);
+  unsigned int getNextNeededSegmentNumber(int layer);
+
   static SVCBufferBasedAdaptationLogic _staticLogic;
 
   SVCBufferBasedAdaptationLogic()
@@ -37,8 +49,25 @@ protected:
     ENSURE_ADAPTATION_LOGIC_REGISTERED(SVCBufferBasedAdaptationLogic);
   }
 
-  unsigned int currentSegmentNumber;
+  std::map<int /*level*/, IRepresentation*> m_orderdByDepIdReps;
 
+  int segments_for_growing;
+  int segments_for_upswitching;
+
+  double alpha;
+  int gamma; //BUFFER_MIN_SIZE
+
+  double segment_duration;
+
+  enum AdaptationPhase
+  {
+    Steady = 0,
+    Growing = 1,
+    Upswitching = 2
+  };
+
+  AdaptationPhase lastPhase;
+  AdaptationPhase allowedPhase;
 };
 }
 }

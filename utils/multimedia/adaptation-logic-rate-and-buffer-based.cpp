@@ -28,7 +28,8 @@ namespace player
 ENSURE_ADAPTATION_LOGIC_INITIALIZED(RateAndBufferBasedAdaptationLogic)
 
 ISegmentURL*
-RateAndBufferBasedAdaptationLogic::GetNextSegment(unsigned int *requested_segment_number, const dash::mpd::IRepresentation **usedRepresentation)
+RateAndBufferBasedAdaptationLogic::GetNextSegment(unsigned int *requested_segment_number,
+                                                  const dash::mpd::IRepresentation **usedRepresentation, bool *hasDownloadedAllSegments)
 {
   const IRepresentation* useRep = NULL;;
 
@@ -73,6 +74,7 @@ RateAndBufferBasedAdaptationLogic::GetNextSegment(unsigned int *requested_segmen
   //IRepresentation* rep = (this->m_availableRepresentations->begin()->second);
   *usedRepresentation = useRep;
   *requested_segment_number = currentSegmentNumber;
+  *hasDownloadedAllSegments = false;
   return useRep->GetSegmentList()->GetSegmentURLs().at(currentSegmentNumber++);
 }
 
