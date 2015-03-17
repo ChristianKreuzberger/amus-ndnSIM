@@ -92,6 +92,8 @@ template<class Parent>
 MultimediaConsumer<Parent>::MultimediaConsumer() : super()
 {
   NS_LOG_FUNCTION_NOARGS();
+  mpd = NULL;
+  mPlayer = NULL;
 }
 
 
@@ -165,10 +167,14 @@ MultimediaConsumer<Parent>::StopApplication() // Called at time specified by Sto
   m_consumerLoopTimer.Cancel();
   Simulator::Cancel(m_consumerLoopTimer);
 
-  delete this->mpd;
-  delete this->mPlayer;
-  this->mpd = NULL;
-  this->mPlayer = NULL;
+  if(mpd != NULL)
+    delete mpd;
+
+  if(mPlayer != NULL)
+    delete mPlayer;
+
+  mpd = NULL;
+  mPlayer = NULL;
 
   // cleanup base stuff
   super::StopApplication();
