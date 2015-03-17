@@ -97,6 +97,7 @@ FileConsumer::GetTypeId(void)
 FileConsumer::FileConsumer()
 {
   NS_LOG_FUNCTION_NOARGS();
+  m_localDataCache = NULL;
 }
 
 FileConsumer::~FileConsumer()
