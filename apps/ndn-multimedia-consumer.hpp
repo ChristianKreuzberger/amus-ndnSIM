@@ -52,8 +52,10 @@
 
 #include "utils/multimedia/multimedia-player.hpp"
 
+#include "boost/algorithm/string/predicate.hpp"
 
 #define MULTIMEDIA_CONSUMER_LOOP_TIMER 0.1
+#define MIN_BUFFER_LEVEL 4.0
 
 
 using namespace dash::mpd;
@@ -131,8 +133,10 @@ protected:
   bool m_hasStartedPlaying;
   bool m_hasDownloadedAllSegments;
 
+  dash::mpd::ISegmentURL* requestedSegmentURL;
   const dash::mpd::IRepresentation* requestedRepresentation;
   unsigned int requestedSegmentNr;
+
 
   void SchedulePlay(double wait_time = MULTIMEDIA_CONSUMER_LOOP_TIMER);
   void DoPlay();
@@ -141,6 +145,9 @@ protected:
 
   std::vector<std::string> m_downloadedInitSegments; ///< \brief a vector containing the representation IDs of which we have init segments
   DownloadType m_currentDownloadType;
+
+  virtual void
+  OnData(shared_ptr<const Data> data);
 
   virtual void
   OnMpdFile();

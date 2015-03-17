@@ -35,6 +35,8 @@ public:
   virtual ISegmentURL*
   GetNextSegment(unsigned int* requested_segment_number, const dash::mpd::IRepresentation** usedRepresentation,  bool* hasDownloadedAllSegments);
 
+  virtual bool hasMinBufferLevel(const dash::mpd::IRepresentation* rep);
+
 
 protected:
 

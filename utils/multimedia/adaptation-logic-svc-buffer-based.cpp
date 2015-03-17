@@ -178,5 +178,35 @@ unsigned int SVCBufferBasedAdaptationLogic::getNextNeededSegmentNumber(int layer
   }
 }
 
+bool SVCBufferBasedAdaptationLogic::hasMinBufferLevel(const dash::mpd::IRepresentation* rep)
+{
+
+  std::string repId = rep->GetId ();
+
+  //determine layer of rep
+  int layer = -1;
+  for(std::map<int /*level*/, IRepresentation*>::iterator it = m_orderdByDepIdReps.begin (); it != m_orderdByDepIdReps.end (); ++it)
+  {
+    if(repId.compare (it->second->GetId ()) == 0)
+    {
+      layer = it->first;
+      break;
+    }
+  }
+
+  if(layer == -1)
+  {
+    fprintf(stderr, "Error could not determine layer for RepId\n");
+    return true;
+  }
+  else if( layer == 0) // nerver stop download for layer 0
+    return true;
+
+  if (m_multimediaPlayer->GetBufferLevel(m_orderdByDepIdReps[layer - 1]->GetId()) < desired_buffer_size(layer-1, layer))
+    return false;
+
+  return true;
+}
+
 }
 }

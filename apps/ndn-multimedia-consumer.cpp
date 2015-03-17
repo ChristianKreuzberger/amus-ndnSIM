@@ -134,6 +134,8 @@ MultimediaConsumer<Parent>::StartApplication() // Called at time specified by St
   m_hasDownloadedAllSegments = false;
   m_hasStartedPlaying = false;
   m_freezeStartTime = 0;
+  requestedRepresentation = NULL;
+  requestedSegmentURL = NULL;
 
   m_currentDownloadType = MPD;
   m_startTime = Simulator::Now().GetMilliSeconds();
@@ -147,11 +149,6 @@ MultimediaConsumer<Parent>::StartApplication() // Called at time specified by St
 
   super::SetAttribute("FileToRequest", StringValue(m_mpdInterestName.toUri()));
   super::SetAttribute("WriteOutfile", StringValue(m_tempMpdFile));
-
-
-  m_availableRepresentations.clear();
-
-
 
   // do base stuff
   super::StartApplication();
@@ -168,8 +165,6 @@ MultimediaConsumer<Parent>::StopApplication() // Called at time specified by Sto
   m_consumerLoopTimer.Cancel();
   Simulator::Cancel(m_consumerLoopTimer);
 
-  m_availableRepresentations.clear();
-
   delete this->mpd;
   delete this->mPlayer;
   this->mpd = NULL;
@@ -185,6 +180,7 @@ template<class Parent>
 void
 MultimediaConsumer<Parent>::OnMpdFile()
 {
+
   // check if file was gziped
   if (m_tempMpdFile.find(".gz") != std::string::npos)
   {
@@ -299,7 +295,7 @@ MultimediaConsumer<Parent>::OnMpdFile()
 
   std::cerr << "Download Speed of MPD file was : " << downloadSpeed << " bits per second" << std::endl;
 
-
+  m_availableRepresentations.clear();
   for (IRepresentation* rep : reps)
   {
     unsigned int width = rep->GetWidth();
@@ -439,7 +435,8 @@ MultimediaConsumer<Parent>::OnMultimediaFile()
       NS_LOG_DEBUG("Init Segment received (rep=" << m_curRepId << ")");
     }
 
-  } else
+  }
+  else
   {
     // normal segment
     //unsigned long curTime = Simulator::Now().GetMilliSeconds();
@@ -484,6 +481,27 @@ MultimediaConsumer<Parent>::OnFileReceived(unsigned status, unsigned length)
 
 }
 
+
+
+template<class Parent>
+void
+MultimediaConsumer<Parent>::OnData(shared_ptr<const Data> data)
+{
+  if(requestedSegmentURL == NULL)
+  {
+    super::OnData(data);
+    return;
+  }
+
+  std::string interestName = data->getName().toUri();
+
+  if(boost::starts_with(interestName, m_baseURL+(requestedSegmentURL->GetMediaURI())))
+  {
+    super::OnData(data);
+  }
+  // else
+  // ignore
+}
 
 
 template<class Parent>
@@ -540,7 +558,7 @@ MultimediaConsumer<Parent>::DownloadSegment()
   requestedRepresentation = NULL;
   requestedSegmentNr = 0;
 
-  dash::mpd::ISegmentURL* segment = mPlayer->GetAdaptationLogic()->GetNextSegment(&requestedSegmentNr, &requestedRepresentation, &m_hasDownloadedAllSegments);
+  requestedSegmentURL = mPlayer->GetAdaptationLogic()->GetNextSegment(&requestedSegmentNr, &requestedRepresentation, &m_hasDownloadedAllSegments);
 
   if(m_hasDownloadedAllSegments) // DONE
   {
@@ -548,7 +566,7 @@ MultimediaConsumer<Parent>::DownloadSegment()
     return;
   }
 
-  if (segment == NULL) //IDLE
+  if (requestedSegmentURL == NULL) //IDLE
   {
     NS_LOG_DEBUG("IDLE\n");
     Simulator::Schedule(Seconds(1.0), &MultimediaConsumer<Parent>::DownloadSegment, this);
@@ -556,7 +574,7 @@ MultimediaConsumer<Parent>::DownloadSegment()
   }
 
   super::StopApplication();
-  super::SetAttribute("FileToRequest", StringValue(m_baseURL + segment->GetMediaURI()));
+  super::SetAttribute("FileToRequest", StringValue(m_baseURL + requestedSegmentURL->GetMediaURI()));
   super::SetAttribute("WriteOutfile", StringValue(""));
   super::StartApplication();
 }
@@ -631,7 +649,20 @@ MultimediaConsumer<Parent>::DoPlay()
     }
 
     // continue trying to consume... - these are unsmooth seconds
-    SchedulePlay();
+    SchedulePlay(); // default parameter
+  }
+
+  //check if we should abort the download
+  if(requestedRepresentation != NULL && !m_hasDownloadedAllSegments && requestedRepresentation->GetDependencyId().size() > 0) // means we are downloading something with dependencies
+  {
+    //check buffer state
+    if(!mPlayer->GetAdaptationLogic()->hasMinBufferLevel(requestedRepresentation))
+    {
+      //abort download ...
+      NS_LOG_DEBUG("Aborting to download a segment with repId = " << requestedRepresentation->GetId().c_str());
+      super::StopApplication();
+      ScheduleDownloadOfSegment();
+    }
   }
 }
 

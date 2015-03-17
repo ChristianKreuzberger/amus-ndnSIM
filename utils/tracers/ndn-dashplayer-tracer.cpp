@@ -209,8 +209,8 @@ DASHPlayerTracer::PrintHeader(std::ostream& os) const
   os << "Time"
      << "\t"
      << "Node"
-     << "\t"
-     << "AppId"
+/*     << "\t"
+     << "AppId"*/
      << "\t"
      << "SegmentNumber"
      << "\t"
@@ -241,7 +241,7 @@ DASHPlayerTracer::ConsumeStats(Ptr<ns3::ndn::App> app,
       depIdStr.append (","+*it);
   }
 
-  *m_os << Simulator::Now().ToDouble(Time::S) << "\t" << m_node << "\t" << app->GetId() << "\t"
+  *m_os << Simulator::Now().ToDouble(Time::S) << "\t" << m_node << "\t" /*<< app->GetId() << "\t"*/
         << segmentNr << "\t" << segmentDuration << "\t" << representationId << "\t"
         << segmentBitrate << "\t" << stallingTime << "\t" << depIdStr << "\n";
 }

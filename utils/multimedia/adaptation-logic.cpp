@@ -72,6 +72,11 @@ unsigned int AdaptationLogic::getTotalSegments()
   return m_availableRepresentations->begin()->second->GetSegmentList ()->GetSegmentURLs().size();
 }
 
+bool AdaptationLogic::hasMinBufferLevel(const dash::mpd::IRepresentation* rep)
+{
+  return true;
+}
+
 
 
 }
