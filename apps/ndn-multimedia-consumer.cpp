@@ -81,6 +81,8 @@ MultimediaConsumer<Parent>::GetTypeId(void)
                           "lowest, auto (lowest = the lowest representation available, auto = use adaptation logic to decide)",
                           StringValue("auto"),
                     MakeStringAccessor (&MultimediaConsumer<Parent>::m_startRepresentationId), MakeStringChecker ())
+      .AddTraceSource("PlayerTracer", "Trace Player consumes of multimedia data",
+                      MakeTraceSourceAccessor(&MultimediaConsumer<Parent>::m_playerTracer))
                     ;
 
   return tid;
@@ -595,6 +597,7 @@ MultimediaConsumer<Parent>::DoPlay()
   {
     //fprintf(stderr, "Consumed Segment %d, with Rep %s for %f seconds\n",entry.segmentNumber,entry.repId.c_str(), entry.segmentDuration);
     NS_LOG_DEBUG("Consumed Segment " << entry.segmentNumber << ", with Rep " << entry.repId << " for " << entry.segmentDuration << "seconds");
+    int64_t freezeTime = 0;
     if (!m_hasStartedPlaying)
     {
       // we havent started yet, so we can measure the start-up delay until now
@@ -606,10 +609,13 @@ MultimediaConsumer<Parent>::DoPlay()
     {
       // we had a freeze/stall, but we can continue playing now
       // measure:
-      int64_t freezeTime = Simulator::Now().GetMilliSeconds() - m_freezeStartTime;
+      freezeTime = (Simulator::Now().GetMilliSeconds() - m_freezeStartTime);
       m_freezeStartTime = 0;
       NS_LOG_DEBUG("Freeze Of " << freezeTime << " milliseconds is over!");
     }
+
+    m_playerTracer(this, entry.segmentNumber, entry.segmentDuration, entry.repId,
+                   entry.bitrate_bit_s, freezeTime, entry.depIds);
 
     NS_LOG_DEBUG("Consuming " << consumedSeconds << " seconds from buffer...");
     SchedulePlay(consumedSeconds);

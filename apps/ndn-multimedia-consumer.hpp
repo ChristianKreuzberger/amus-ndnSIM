@@ -139,10 +139,6 @@ protected:
 
   EventId m_consumerLoopTimer;
 
-
-
-
-
   std::vector<std::string> m_downloadedInitSegments; ///< \brief a vector containing the representation IDs of which we have init segments
   DownloadType m_currentDownloadType;
 
@@ -163,6 +159,11 @@ protected:
 
   virtual void
   DownloadSegment();
+
+  TracedCallback<Ptr<ns3::ndn::App> /*App*/, unsigned int /*SegmentNr*/, double /*SegmentDuration*/,
+                std::string /*RepresntationId*/, unsigned int /*cumulative SegmentBitrate*/,
+                int64_t /*StallingTime*/,std::vector<std::string> /*DependencyIds*/> m_playerTracer;
+
 };
 
 } // namespace ndn
