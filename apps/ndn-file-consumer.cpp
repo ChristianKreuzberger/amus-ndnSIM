@@ -178,6 +178,13 @@ FileConsumer::StopApplication() // Called at time specified by Stop
   Simulator::Cancel(m_sendEvent);
   Simulator::Cancel(m_packetStatsUpdateEvent);
 
+  //cancel all timeouts
+  for(std::map<uint32_t,EventId>::iterator it = m_chunkTimeoutEvents.begin();
+      it != m_chunkTimeoutEvents.end(); it++)
+  {
+    Simulator::Cancel(it->second);
+  }
+
   m_sequenceStatus.clear();
 
   if (m_localDataCache != NULL)
@@ -238,6 +245,8 @@ FileConsumer::SendManifestPacket()
 
   // create the interest name: m_interestName + manifest string (postfix)
   interestNameWithManifest->append(m_manifestPostfix);
+
+  //fprintf(stderr, "interestNameWithManifest=%s\n", interestNameWithManifest->toUri().c_str());
 
   // create an interest, set nonce
   shared_ptr<Interest> interest = make_shared<Interest>();
