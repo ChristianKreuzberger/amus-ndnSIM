@@ -73,8 +73,7 @@ FileConsumerCbr::StartApplication()
     long bitrate = GetFaceBitrate(0);
     uint16_t mtu = GetFaceMTU(0);
     double max_packets_possible = ((double)bitrate / 8.0 ) / (double)mtu;
-    NS_LOG_UNCOND("Bitrate: " << bitrate << ", max_packets: " << max_packets_possible);
-    std::cerr << "Bitrate: " << bitrate << ", max_packets: " << max_packets_possible << std::endl;
+    NS_LOG_DEBUG("Bitrate: " << bitrate << ", max_packets: " << max_packets_possible);
     m_windowSize = floor(max_packets_possible);
   }
 

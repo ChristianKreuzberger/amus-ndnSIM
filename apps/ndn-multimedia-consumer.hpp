@@ -53,6 +53,8 @@
 #include "utils/multimedia/multimedia-player.hpp"
 
 #include "boost/algorithm/string/predicate.hpp"
+#include <boost/random/random_device.hpp>
+#include <boost/random/uniform_int_distribution.hpp>
 
 #define MULTIMEDIA_CONSUMER_LOOP_TIMER 0.1
 #define MIN_BUFFER_LEVEL 4.0
@@ -127,6 +129,7 @@ protected:
 
   int64_t m_freezeStartTime;
 
+  static std::string alphabet;
 
   bool m_mpdParsed;
   bool m_initSegmentIsGlobal;

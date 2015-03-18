@@ -41,7 +41,6 @@
 
 NS_LOG_COMPONENT_DEFINE("ndn.MultimediaConsumer");
 
-
 using namespace dash::mpd;
 
 namespace ns3 {
@@ -49,6 +48,8 @@ namespace ndn {
 
 typedef MultimediaConsumer<FileConsumerCbr> MultimediaConsumerCbr;
 NS_OBJECT_ENSURE_REGISTERED(MultimediaConsumerCbr);
+
+template <typename Parent> std::string MultimediaConsumer<Parent>::alphabet = std::string("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890");
 
 template<class Parent>
 TypeId
@@ -91,7 +92,7 @@ MultimediaConsumer<Parent>::GetTypeId(void)
 template<class Parent>
 MultimediaConsumer<Parent>::MultimediaConsumer() : super()
 {
-  NS_LOG_FUNCTION_NOARGS();
+  NS_LOG_FUNCTION_NOARGS();  
   mpd = NULL;
   mPlayer = NULL;
 }
@@ -124,6 +125,12 @@ MultimediaConsumer<Parent>::StartApplication() // Called at time specified by St
 
   std::stringstream ss_tempDir;
   ss_tempDir << "/" << node_id;
+
+  boost::random::random_device rng;
+  boost::random::uniform_int_distribution<> index_dist(0, MultimediaConsumer<Parent>::alphabet.size() - 1);
+  for(int i = 0; i < 8; ++i)
+     ss_tempDir << MultimediaConsumer<Parent>::alphabet[index_dist(rng)];
+
   m_tempDir = ns3::SystemPath::MakeTemporaryDirectoryName() + ss_tempDir.str();
 
   NS_LOG_DEBUG("Temporary Directory: " << m_tempDir);
@@ -199,7 +206,7 @@ MultimediaConsumer<Parent>::OnMpdFile()
   }
 
 
-  std::cerr << "MPD File " << m_tempMpdFile << " received. Parsing now..." << std::endl;
+  NS_LOG_DEBUG("MPD File " << m_tempMpdFile << " received. Parsing now...");
 
 
   dash::IDASHManager *manager;
@@ -228,14 +235,14 @@ MultimediaConsumer<Parent>::OnMpdFile()
     else
     {
       int randUrl = rand() % baseUrls.size();
-      std::cerr << "Mutliple base URLs available, selecting a random one... " << std::endl;
+      NS_LOG_DEBUG("Mutliple base URLs available, selecting a random one... ");
       m_baseURL = baseUrls.at(randUrl)->GetUrl();
     }
 
     if(m_baseURL.substr (0,7).compare ("http://") == 0)
       m_baseURL = m_baseURL.substr(6,m_baseURL.length ());
 
-    std::cerr << "Base URL: " << m_baseURL << std::endl;
+    NS_LOG_DEBUG("Base URL: " << m_baseURL);
   }
   else
   {
@@ -258,12 +265,12 @@ MultimediaConsumer<Parent>::OnMpdFile()
 
   // check if the adaptation set has an init segment
   // alternatively, the init segment is representation-specific
-  std::cerr << "Checking for init segment in adaptation set..." << std::endl;
+  NS_LOG_DEBUG("Checking for init segment in adaptation set...");
   std::string initSegment = "";
 
   if (adaptationSet->GetSegmentBase () && adaptationSet->GetSegmentBase ()->GetInitialization ())
   {
-    std::cerr << "Adaptation Set has INIT Segment" << std::endl;
+    NS_LOG_DEBUG("Adaptation Set has INIT Segment");
     // get URL to init segment
     initSegment = adaptationSet->GetSegmentBase ()->GetInitialization ()->GetSourceURL ();
     // TODO: request init segment
@@ -271,7 +278,7 @@ MultimediaConsumer<Parent>::OnMpdFile()
   }
   else
   {
-    std::cerr << "Adaptation Set does not have INIT Segment" << std::endl;
+    NS_LOG_DEBUG("Adaptation Set does not have INIT Segment");
     /*if (adaptationSet->GetRepresentation().at(0)->GetSegmentBase())
     {
       std::cerr << "Alternative: " << adaptationSet->GetRepresentation().at(0)->GetSegmentBase()->GetInitialization()->GetSourceURL() << std::endl;
@@ -283,12 +290,12 @@ MultimediaConsumer<Parent>::OnMpdFile()
   // get all representations
   std::vector<IRepresentation*> reps = adaptationSet->GetRepresentation();
 
-  std::cerr << "MPD file contains " << reps.size() << " Representations: "  << std::endl;
-  std::cerr << "Start Representation: " << m_startRepresentationId << std::endl;
+  NS_LOG_DEBUG("MPD file contains " << reps.size() << " Representations: ");
+  NS_LOG_DEBUG("Start Representation: " << m_startRepresentationId);
 
     // calculate segment duration
   // reps.at(0)->GetSegmentList()->GetDuration();
-  std::cerr << "Period Duration:" << reps.at(0)->GetSegmentList()->GetDuration() << std::endl;
+  NS_LOG_DEBUG("Period Duration:" << reps.at(0)->GetSegmentList()->GetDuration());
 
   bool startRepresentationSelected = false;
 
@@ -299,7 +306,7 @@ MultimediaConsumer<Parent>::OnMpdFile()
   mPlayer->SetLastDownloadBitRate(downloadSpeed);
 
 
-  std::cerr << "Download Speed of MPD file was : " << downloadSpeed << " bits per second" << std::endl;
+  NS_LOG_DEBUG("Download Speed of MPD file was : " << downloadSpeed << " bits per second");
 
   m_availableRepresentations.clear();
   for (IRepresentation* rep : reps)
@@ -329,8 +336,8 @@ MultimediaConsumer<Parent>::OnMpdFile()
 
     unsigned int requiredDownloadSpeed = rep->GetBandwidth();
 
-    std::cerr << "ID = " << repId << ", DepId=" <<
-        dependencies.size() << ", width=" << width << ", height=" << height << ", bwReq=" << requiredDownloadSpeed <<  std::endl;
+    NS_LOG_DEBUG("ID = " << repId << ", DepId=" <<
+        dependencies.size() << ", width=" << width << ", height=" << height << ", bwReq=" << requiredDownloadSpeed);
 
 
     if (!startRepresentationSelected && m_startRepresentationId != "lowest")
@@ -346,7 +353,7 @@ MultimediaConsumer<Parent>::OnMpdFile()
       }
       else if (rep->GetId() == m_startRepresentationId)
       {
-        std::cerr << "The last representation is the start representation!" << std::endl;
+        NS_LOG_DEBUG("The last representation is the start representation!");
         startRepresentationSelected = true;
       }
     }
@@ -357,7 +364,7 @@ MultimediaConsumer<Parent>::OnMpdFile()
   // check m_startRepresentationId
   if (m_startRepresentationId == "lowest")
   {
-    std::cerr << "Using Lowest available representation; ID = " << firstRepresentationId << std::endl;
+    NS_LOG_DEBUG("Using Lowest available representation; ID = " << firstRepresentationId);
     m_startRepresentationId = firstRepresentationId;
     startRepresentationSelected = true;
   } else if (m_startRepresentationId == "auto")
@@ -365,7 +372,7 @@ MultimediaConsumer<Parent>::OnMpdFile()
     // select representation based on bandwidth
     if (bestRepresentationBasedOnBandwidth != "")
     {
-      std::cerr << "Using best representation based on bandwidth; ID = " << bestRepresentationBasedOnBandwidth << std::endl;
+      NS_LOG_DEBUG("Using best representation based on bandwidth; ID = " << bestRepresentationBasedOnBandwidth);
       m_startRepresentationId = bestRepresentationBasedOnBandwidth;
       startRepresentationSelected = true;
     }
@@ -375,7 +382,7 @@ MultimediaConsumer<Parent>::OnMpdFile()
   if (!startRepresentationSelected)
   {
     // IF NOT, default to lowest
-    std::cerr << "No start representation selected, default to lowest available representation; ID = " << firstRepresentationId << std::endl;
+    NS_LOG_DEBUG("No start representation selected, default to lowest available representation; ID = " << firstRepresentationId);
     m_startRepresentationId = firstRepresentationId;
     startRepresentationSelected = true;
   }
@@ -385,9 +392,9 @@ MultimediaConsumer<Parent>::OnMpdFile()
   // okay, check init segment
   if (initSegment == "")
   {
-    std::cerr << "Using init segment of representation " << m_startRepresentationId << std::endl;
+    NS_LOG_DEBUG("Using init segment of representation " << m_startRepresentationId);
     initSegment = m_availableRepresentations[m_startRepresentationId]->GetSegmentBase()->GetInitialization()->GetSourceURL();
-    std::cerr << "Init Segment URL = " << initSegment << std::endl;
+    NS_LOG_DEBUG("Init Segment URL = " << initSegment);
   }
 
 
@@ -397,11 +404,11 @@ MultimediaConsumer<Parent>::OnMpdFile()
 
   // trigger MPD parsed after x seconds
   unsigned long curTime = Simulator::Now().GetMilliSeconds();
-  std::cerr << "MPD received after " << (curTime - m_startTime) << " ms" << std::endl;
+  NS_LOG_DEBUG("MPD received after " << (curTime - m_startTime) << " ms");
 
   if (initSegment == "")
   {
-    std::cerr << "No init Segment selected." << std::endl;
+    NS_LOG_DEBUG("No init Segment selected.");
     // schedule streaming of first segment
     m_currentDownloadType = Segment;
 
@@ -424,7 +431,7 @@ template<class Parent>
 void
 MultimediaConsumer<Parent>::OnMultimediaFile()
 {
-  std::cerr << "On Multimedia File: " << super::m_interestName << std::endl;
+  NS_LOG_DEBUG("On Multimedia File: " << super::m_interestName);
 
   // get the current representation id
   // and check if this was an init segment
@@ -526,7 +533,7 @@ template<class Parent>
 void
 MultimediaConsumer<Parent>::DownloadInitSegment()
 {
-  std::cerr << "Downloading init segment... " << m_baseURL + m_initSegment << ";" << std::endl;
+  NS_LOG_DEBUG("Downloading init segment... " << m_baseURL + m_initSegment << ";");
   super::StopApplication();
   super::SetAttribute("FileToRequest", StringValue(m_baseURL + m_initSegment));
   super::SetAttribute("WriteOutfile", StringValue(""));
