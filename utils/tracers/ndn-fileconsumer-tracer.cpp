@@ -237,6 +237,7 @@ FileConsumerTracer::CurrentPacketStats(Ptr<ns3::ndn::App> app, shared_ptr<const 
         << interestName->toUri() << "\t" << m_packetsSent << "\t" << m_packetsReceived << "\t"
         << m_packetsTimedout << "\t" << m_packetsRetransmitted << "\t"
         << EstimatedRTT << "\t" << RTTVariation << "\n";
+  m_os->flush();
 }
 
 
