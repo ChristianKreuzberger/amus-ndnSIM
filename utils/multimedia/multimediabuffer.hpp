@@ -3,7 +3,7 @@
 
 #include <map>
 #include <vector>
-#include "libdash/libdash.h"
+#include "libdash.h"
 
 namespace dash
 {
