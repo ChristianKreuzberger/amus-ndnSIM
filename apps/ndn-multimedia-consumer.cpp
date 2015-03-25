@@ -174,6 +174,9 @@ MultimediaConsumer<Parent>::StopApplication() // Called at time specified by Sto
   m_consumerLoopTimer.Cancel();
   Simulator::Cancel(m_consumerLoopTimer);
 
+  m_downloadEventTimer.Cancel();
+  Simulator::Cancel(m_downloadEventTimer);
+
   if(mpd != NULL)
     delete mpd;
 
@@ -582,7 +585,7 @@ MultimediaConsumer<Parent>::DownloadSegment()
   if (requestedSegmentURL == NULL) //IDLE
   {
     NS_LOG_DEBUG("IDLE\n");
-    Simulator::Schedule(Seconds(1.0), &MultimediaConsumer<Parent>::DownloadSegment, this);
+    m_downloadEventTimer = Simulator::Schedule(Seconds(1.0), &MultimediaConsumer<Parent>::DownloadSegment, this);
     return;
   }
 

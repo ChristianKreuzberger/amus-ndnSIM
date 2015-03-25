@@ -145,6 +145,7 @@ protected:
   void DoPlay();
 
   EventId m_consumerLoopTimer;
+  EventId m_downloadEventTimer;
 
   std::vector<std::string> m_downloadedInitSegments; ///< \brief a vector containing the representation IDs of which we have init segments
   DownloadType m_currentDownloadType;
