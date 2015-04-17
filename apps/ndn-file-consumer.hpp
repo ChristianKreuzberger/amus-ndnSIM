@@ -137,9 +137,6 @@ protected:
   uint16_t
   GetFaceMTU(uint32_t faceId);
 
-  double
-  CalculateDownloadSpeed();
-
 
   EventId m_sendEvent; ///< @brief EventId of pending "send packet" event
   long m_nextEventScheduleTime;
@@ -201,11 +198,15 @@ protected: // callbacks/traces
             double /* EstimatedRTT */, double /* RTTVariation */
             > m_currentStatsTrace;
 
+  double lastDownloadBitrate;
 
 private:
   int64_t _start_time;
   int64_t _finished_time;
   shared_ptr<Name> _shared_interestName; // = make_shared<Name>(m_interestName);
+
+  double
+  CalculateDownloadSpeed();
 
 
 

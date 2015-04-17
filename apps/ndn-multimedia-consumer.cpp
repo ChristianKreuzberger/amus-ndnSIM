@@ -305,11 +305,11 @@ MultimediaConsumer<Parent>::OnMpdFile()
   std::string firstRepresentationId = "";
   std::string bestRepresentationBasedOnBandwidth = "";
 
-  double downloadSpeed = super::CalculateDownloadSpeed() * 8;
-  mPlayer->SetLastDownloadBitRate(downloadSpeed);
+  //double downloadSpeed = super::CalculateDownloadSpeed() * 8;
+  mPlayer->SetLastDownloadBitRate(super::lastDownloadBitrate);
 
 
-  NS_LOG_DEBUG("Download Speed of MPD file was : " << downloadSpeed << " bits per second");
+  NS_LOG_DEBUG("Download Speed of MPD file was : " << super::lastDownloadBitrate << " bits per second");
 
   m_availableRepresentations.clear();
   for (IRepresentation* rep : reps)
@@ -348,7 +348,7 @@ MultimediaConsumer<Parent>::OnMpdFile()
       if (m_startRepresentationId == "auto")
       {
         // do we have enough bandwidth available?
-        if (downloadSpeed > requiredDownloadSpeed)
+        if (super::lastDownloadBitrate > requiredDownloadSpeed)
         {
           // yes we do!
           bestRepresentationBasedOnBandwidth = repId;
@@ -458,8 +458,7 @@ MultimediaConsumer<Parent>::OnMultimediaFile()
     //unsigned long curTime = Simulator::Now().GetMilliSeconds();
     //std::cerr << "Normal Segment received after " << (curTime - m_startTime)  << " ms.." << std::endl;
 
-    double downloadSpeed = super::CalculateDownloadSpeed() * 8;
-    mPlayer->SetLastDownloadBitRate(downloadSpeed);
+    mPlayer->SetLastDownloadBitRate(super::lastDownloadBitrate);
 
     if(mPlayer->EnoughSpaceInBuffer(requestedSegmentNr, requestedRepresentation))
     {
