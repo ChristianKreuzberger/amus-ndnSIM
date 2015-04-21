@@ -106,6 +106,7 @@ protected:
   bool m_allowUpscale;        ///< \brief Whether or not it is possible to upscale content with lower resolutions to the screen width/height
   bool m_allowDownscale;      ///< \brief Whether or not it is possible to downscale content with higher resolutions to the screen width/height
   unsigned int m_maxBufferedSeconds; ///< \brief The maximum amount of buffered seconds
+  double startupDelay;
 
   std::string m_startRepresentationId;  ///< \brief The representation ID for initializing streaming
   std::string m_adaptationLogicStr;     ///< \brief The adaptation logic that should be used

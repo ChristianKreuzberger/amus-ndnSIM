@@ -84,6 +84,8 @@ MultimediaConsumer<Parent>::GetTypeId(void)
                     MakeStringAccessor (&MultimediaConsumer<Parent>::m_startRepresentationId), MakeStringChecker ())
       .template AddAttribute("TraceNotDownloadedSegments", "Defines wether to trace or not to trace not downloaded segments", BooleanValue(false),
                     MakeBooleanAccessor(&MultimediaConsumer<Parent>::traceNotDownloadedSegments), MakeBooleanChecker())
+      .template AddAttribute("StartUpDelay", "Defines the time to wait before trying to start playback", DoubleValue(2.0),
+                    MakeDoubleAccessor(&MultimediaConsumer<Parent>::startupDelay), MakeDoubleChecker<double>())
       .AddTraceSource("PlayerTracer", "Trace Player consumes of multimedia data",
                       MakeTraceSourceAccessor(&MultimediaConsumer<Parent>::m_playerTracer))
                     ;
@@ -186,8 +188,6 @@ MultimediaConsumer<Parent>::StopApplication() // Called at time specified by Sto
     //check if mpd and player exists
     if(mpd != NULL && mPlayer != NULL)
     {
-      fprintf(stderr, "StopApplication && traceNotDownloadedSegments && mpd && mPlayer\n");
-
       //first consume everything from buffer
       while(consume() > 0.0);
 
@@ -446,9 +446,8 @@ MultimediaConsumer<Parent>::OnMpdFile()
     ScheduleDownloadOfInitSegment();
   }
 
-
   // we received the MDP, so we can now start the timer for playing
-  SchedulePlay();
+  SchedulePlay(startupDelay);
 }
 
 
