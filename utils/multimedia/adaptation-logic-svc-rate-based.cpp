@@ -31,8 +31,10 @@ SVCRateBasedAdaptationLogic::GetNextSegment(unsigned int *requested_segment_numb
   //update EMA of download bitrate
   updateEMA ();
 
-  //check if we have the minbuffer level
-  if(!hasMinBufferLevel ())
+  //fprintf(stderr, "bitrate = %f\n",ema_download_bitrate);
+
+  if(!hasMinBufferLevel () || //check if we have the minbuffer level
+     (repsForCurSegment.empty () && m_multimediaPlayer->GetBufferLevel() < bufMinLevel + GrowingBuffer)) // check if stack is empty if we should download a rep based on EMA bitrate
   {
     //clear download stack
     while(!repsForCurSegment.empty ())
@@ -105,7 +107,7 @@ bool SVCRateBasedAdaptationLogic::hasMinBufferLevel(const dash::mpd::IRepresenta
 
 bool SVCRateBasedAdaptationLogic::hasMinBufferLevel()
 {
-  if(m_multimediaPlayer->GetBufferLevel() > 0)
+  if(m_multimediaPlayer->GetBufferLevel() > bufMinLevel)
     return true;
 
   return false;

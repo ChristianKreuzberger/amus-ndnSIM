@@ -23,8 +23,9 @@
 #include "multimedia-player.hpp"
 #include <stack>
 
-//#define RateBasedMinBufferLevel 20.0 //Seconds
-#define RateBasedEMA_W 0.2
+#define RateBasedMinBufferLevel 10.0 //Seconds
+#define GrowingBuffer 4.0 //Seconds
+#define RateBasedEMA_W 0.3
 
 namespace dash
 {
@@ -37,6 +38,7 @@ public:
   {
     ema_download_bitrate = m_multimediaPlayer->GetLastDownloadBitRate();
     curSegmentNumber = 0;
+    bufMinLevel = RateBasedMinBufferLevel;
   }
 
   virtual std::string GetName() const
@@ -76,7 +78,7 @@ protected:
   unsigned int curSegmentNumber;
 
   double segment_duration;
-  //double bufMinLevel;
+  double bufMinLevel;
 
   double ema_download_bitrate; /* moving average*/
 
