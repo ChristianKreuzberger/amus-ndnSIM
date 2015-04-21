@@ -72,9 +72,6 @@ FileConsumer::GetTypeId(void)
                     MakeStringAccessor(&FileConsumer::m_manifestPostfix), MakeStringChecker())
       .AddAttribute("WriteOutfile", "Write the downloaded file to outfile (empty means disabled)", StringValue(""),
                     MakeStringAccessor(&FileConsumer::m_outFile), MakeStringChecker())
-      .AddAttribute("MaxPayloadSize", "The maximum size of the payload of a data packet", UintegerValue(1400),
-                    MakeUintegerAccessor(&FileConsumer::m_maxPayloadSize),
-                    MakeUintegerChecker<uint32_t>())
       .AddAttribute("MaxEstimatedRTT", "The maximum RTT the RTTEstimator should have (in ms)", UintegerValue(500),
                     MakeUintegerAccessor(&FileConsumer::m_maxRTT),
                     MakeUintegerChecker<uint32_t>())
@@ -477,11 +474,19 @@ FileConsumer::OnData(shared_ptr<const Data> data)
     {
       // this means we have just received the manifest
       // get the content value: cast unit8_t* to long* and then dereference it
-      long fileSize =  *((long*)data->getContent().value());
+      //long fileSize =  *((long*)data->getContent().value());
 
-      NS_LOG_DEBUG("Received Manifest! FileSize=" << fileSize);
+      uint8_t *buffer = ((uint8_t*)data->getContent().value());
+      long fileSize;
+      int maxPayload;
+      memcpy(&fileSize, buffer, sizeof(long));
+      memcpy(&maxPayload, buffer+sizeof(long), sizeof(unsigned));
+
+
+      NS_LOG_UNCOND("Received Manifest! FileSize=" << fileSize << ", MaxPayload=" << maxPayload);
       m_hasReceivedManifest = true;
       m_fileSize = fileSize;
+      m_maxPayloadSize = maxPayload;
 
       if (m_fileSize == -1)
       {
@@ -493,7 +498,7 @@ FileConsumer::OnData(shared_ptr<const Data> data)
       {
         m_curSeqNo = 0;
         m_maxSeqNo = ceil(m_fileSize/m_maxPayloadSize);
-        NS_LOG_DEBUG("Resulting Max Seq Nr = " << m_maxSeqNo);
+        NS_LOG_UNCOND("Resulting Max Seq Nr = " << m_maxSeqNo);
 
         // Trigger OnManifest
         m_chunkTimeoutEvents[0].Cancel();

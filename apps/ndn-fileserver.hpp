@@ -20,6 +20,8 @@
 #ifndef NDN_FILESERVER_H
 #define NDN_FILESERVER_H
 
+#define D_ACTUAL_OVERHEAD 40
+
 #include "ns3/ndnSIM/model/ndn-common.hpp"
 
 #include "ndn-app.hpp"
@@ -68,12 +70,22 @@ protected:
   long
   GetFileSize(std::string filename);
 
+  uint16_t
+  GetFaceMTU(uint32_t faceId);
+
+  size_t
+  EstimateOverhead(std::string& fname);
+
+
+  uint16_t m_MTU;
+
 private:
   std::string m_prefix;
   std::string m_contentDir;
   std::string m_postfixManifest;
 
   std::map<std::string,long> m_fileSizes;
+  std::map<std::string,size_t> m_packetSizes;
 
 
   uint32_t m_maxPayloadSize;

@@ -24,6 +24,13 @@
 #include "ns3/packet.h"
 #include "ns3/simulator.h"
 
+#include "ns3/data-rate.h"
+#include "ns3/ndnSIM/model/ndn-common.hpp"
+
+#include "ns3/point-to-point-module.h"
+
+
+
 #include "model/ndn-app-face.hpp"
 #include "model/ndn-ns3.hpp"
 #include "model/ndn-l3-protocol.hpp"

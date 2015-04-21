@@ -24,6 +24,12 @@
 #include "ns3/packet.h"
 #include "ns3/simulator.h"
 
+#include "ns3/data-rate.h"
+#include "ns3/ndnSIM/model/ndn-common.hpp"
+
+#include "ns3/point-to-point-module.h"
+
+
 #include "model/ndn-app-face.hpp"
 #include "model/ndn-ns3.hpp"
 #include "model/ndn-l3-protocol.hpp"
@@ -60,9 +66,6 @@ FileServer::GetTypeId(void)
                     MakeStringAccessor(&FileServer::m_contentDir), MakeStringChecker())
       .AddAttribute("ManifestPostfix", "The manifest string added after a file", StringValue("/manifest"),
                     MakeStringAccessor(&FileServer::m_postfixManifest), MakeStringChecker())
-      .AddAttribute("MaxPayloadSize", "The maximum size of the payload of a data packet", UintegerValue(1400),
-                    MakeUintegerAccessor(&FileServer::m_maxPayloadSize),
-                    MakeUintegerChecker<uint32_t>())
       .AddAttribute("Freshness", "Freshness of data packets, if 0, then unlimited freshness",
                     TimeValue(Seconds(0)), MakeTimeAccessor(&FileServer::m_freshness),
                     MakeTimeChecker())
@@ -92,6 +95,8 @@ FileServer::StartApplication()
   App::StartApplication();
 
   FibHelper::AddRoute(GetNode(), m_prefix, m_face, 0);
+
+  m_MTU = GetFaceMTU(0);
 }
 
 void
@@ -102,6 +107,15 @@ FileServer::StopApplication()
   App::StopApplication();
 }
 
+
+
+uint16_t
+FileServer::GetFaceMTU(uint32_t faceId)
+{
+  Ptr<ns3::PointToPointNetDevice> nd1 = GetNode ()->GetDevice(faceId)->GetObject<ns3::PointToPointNetDevice>();
+  return nd1->GetMtu();
+
+}
 
 
 
@@ -116,6 +130,7 @@ FileServer::OnInterest(shared_ptr<const Interest> interest)
     return;
 
   Name dataName(interest->getName());
+
   // get last postfix
   ndn::Name  lastPostfix = dataName.getSubName(dataName.size() -1 );
   NS_LOG_INFO("> LastPostfix = " << lastPostfix);
@@ -137,6 +152,17 @@ FileServer::OnInterest(shared_ptr<const Interest> interest)
 
   // extract filename and get path to file
   std::string fname = dataName.toUri();  // get the uri from interest
+
+  // measure how much overhead this actually this
+  int diff = EstimateOverhead(fname);
+  // set new payload size to this value (minus 4 bytes to be safe for sequence numbers, ethernet headers, etc...)
+  m_maxPayloadSize = m_MTU - diff - 4;
+
+  //NS_LOG_UNCOND("NewPayload = " << m_maxPayloadSize << " (Overhead: " << diff << ") ");
+
+
+
+
   fname = fname.substr(m_prefix.length(), fname.length()); // remove the prefix
   fname = std::string(m_contentDir).append(fname); // prepend the data path
 
@@ -176,10 +202,13 @@ FileServer::ReturnManifestData(shared_ptr<const Interest> interest, std::string&
   data->setName(interest->getName());
   data->setFreshnessPeriod(::ndn::time::milliseconds(m_freshness.GetMilliSeconds()));
 
-  // create content with the file size in it
-  data->setContent(reinterpret_cast<const uint8_t*>(&fileSize), sizeof(long));
+  // create a local buffer variable, which contains a long and an unsigned
+  uint8_t buffer[sizeof(long) + sizeof(unsigned)];
+  memcpy(buffer, &fileSize, sizeof(long));
+  memcpy(buffer+sizeof(long), &m_maxPayloadSize, sizeof(unsigned));
 
-  NS_LOG_INFO("Manifest: " << fileSize);
+  // create content with the file size in it
+  data->setContent(reinterpret_cast<const uint8_t*>(buffer), sizeof(long) + sizeof(unsigned));
 
   Signature signature;
   SignatureInfo signatureInfo(static_cast< ::ndn::tlv::SignatureTypeValue>(255));
@@ -200,6 +229,9 @@ FileServer::ReturnManifestData(shared_ptr<const Interest> interest, std::string&
   m_transmittedDatas(data, this, m_face);
   m_face->onReceiveData(*data);
 }
+
+
+
 
 
 void
@@ -237,7 +269,7 @@ FileServer::ReturnPayloadData(shared_ptr<const Interest> interest, std::string& 
 
 
   // to create real wire encoding
-  data->wireEncode();
+  Block tmp = data->wireEncode();
 
   m_transmittedDatas(data, this, m_face);
   m_face->onReceiveData(*data);
@@ -245,6 +277,48 @@ FileServer::ReturnPayloadData(shared_ptr<const Interest> interest, std::string& 
 
 
 
+
+
+
+size_t
+FileServer::EstimateOverhead(std::string& fname)
+{
+  if (m_packetSizes.find(fname) != m_packetSizes.end())
+  {
+    return m_packetSizes[fname];
+  }
+
+  uint32_t interestLength = fname.length();
+  // estimate the payload size for now
+  int estimatedMaxPayloadSize = m_MTU - interestLength - 30; // the -30 is something we saw in results, it's just to estimate...
+
+  auto data = make_shared<Data>();
+  data->setName(fname + "/1"); // to simulate that there is at least one chunk
+  data->setFreshnessPeriod(::ndn::time::milliseconds(m_freshness.GetMilliSeconds()));
+
+  auto buffer = make_shared< ::ndn::Buffer>(estimatedMaxPayloadSize);
+  data->setContent(buffer);
+
+  Signature signature;
+  SignatureInfo signatureInfo(static_cast< ::ndn::tlv::SignatureTypeValue>(255));
+
+  if (m_keyLocator.size() > 0) {
+    signatureInfo.setKeyLocator(m_keyLocator);
+  }
+
+  signature.setInfo(signatureInfo);
+  signature.setValue(Block(&m_signature, sizeof(m_signature)));
+
+  data->setSignature(signature);
+
+
+  // to create real wire encoding
+  Block tmp = data->wireEncode();
+
+  m_packetSizes[fname] = tmp.size() - estimatedMaxPayloadSize;
+
+  return tmp.size() - estimatedMaxPayloadSize;
+}
 
 
 

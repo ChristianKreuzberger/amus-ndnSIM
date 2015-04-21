@@ -69,6 +69,9 @@ protected:
   long
   GetFileSize(std::string filename);
 
+  uint16_t
+  GetFaceMTU(uint32_t faceId);
+
 private:
   std::string m_prefix;
   std::string m_contentDir;
