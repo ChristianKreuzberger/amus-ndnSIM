@@ -135,6 +135,8 @@ protected:
   bool m_initSegmentIsGlobal;
   bool m_hasStartedPlaying;
   bool m_hasDownloadedAllSegments;
+  bool traceNotDownloadedSegments;
+  unsigned int totalConsumedSegments;
 
   dash::mpd::ISegmentURL* requestedSegmentURL;
   const dash::mpd::IRepresentation* requestedRepresentation;
@@ -143,6 +145,7 @@ protected:
 
   void SchedulePlay(double wait_time = MULTIMEDIA_CONSUMER_LOOP_TIMER);
   void DoPlay();
+  double consume();
 
   EventId m_consumerLoopTimer;
   EventId m_downloadEventTimer;

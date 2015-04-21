@@ -44,6 +44,7 @@ MultimediaPlayer::~MultimediaPlayer()
 MultimediaPlayer::MultimediaPlayer(std::string AdaptationLogicStr, unsigned int maxBufferedSeconds)
 {
   m_buffer = new MultimediaBuffer(maxBufferedSeconds);
+  m_lastBitrate = 0;
   std::shared_ptr<AdaptationLogic> aLogic = AdaptationLogicFactory::Create(AdaptationLogicStr, this);
 
   if (aLogic == nullptr)

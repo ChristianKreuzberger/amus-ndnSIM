@@ -82,6 +82,8 @@ MultimediaConsumer<Parent>::GetTypeId(void)
                           "lowest, auto (lowest = the lowest representation available, auto = use adaptation logic to decide)",
                           StringValue("auto"),
                     MakeStringAccessor (&MultimediaConsumer<Parent>::m_startRepresentationId), MakeStringChecker ())
+      .template AddAttribute("TraceNotDownloadedSegments", "Defines wether to trace or not to trace not downloaded segments", BooleanValue(false),
+                    MakeBooleanAccessor(&MultimediaConsumer<Parent>::traceNotDownloadedSegments), MakeBooleanChecker())
       .AddTraceSource("PlayerTracer", "Trace Player consumes of multimedia data",
                       MakeTraceSourceAccessor(&MultimediaConsumer<Parent>::m_playerTracer))
                     ;
@@ -143,6 +145,7 @@ MultimediaConsumer<Parent>::StartApplication() // Called at time specified by St
   m_hasDownloadedAllSegments = false;
   m_hasStartedPlaying = false;
   m_freezeStartTime = 0;
+  totalConsumedSegments = 0;
   requestedRepresentation = NULL;
   requestedSegmentURL = NULL;
 
@@ -176,6 +179,26 @@ MultimediaConsumer<Parent>::StopApplication() // Called at time specified by Sto
 
   m_downloadEventTimer.Cancel();
   Simulator::Cancel(m_downloadEventTimer);
+
+  /*OK LOG ALL NOT RECEIVED FILES FROM MPD*/
+  if(traceNotDownloadedSegments)
+  {
+    //check if mpd and player exists
+    if(mpd != NULL && mPlayer != NULL)
+    {
+      fprintf(stderr, "StopApplication && traceNotDownloadedSegments && mpd && mPlayer\n");
+
+      //first consume everything from buffer
+      while(consume() > 0.0);
+
+      //ok check how many segments we have not consumed
+      while(totalConsumedSegments < mPlayer->GetAdaptationLogic()->getTotalSegments())
+      {
+        m_playerTracer(this, totalConsumedSegments++, -1, "0",
+                       0, 0, std::vector<std::string>());
+      }
+    }
+  }
 
   if(mpd != NULL)
     delete mpd;
@@ -612,17 +635,49 @@ template<class Parent>
 void
 MultimediaConsumer<Parent>::DoPlay()
 {
+  double consumed_sec = consume();
+
+  if(consumed_sec > 0) // we play
+  {
+    SchedulePlay(consumed_sec);
+  }
+  else if(consumed_sec == 0.0 && m_hasDownloadedAllSegments)
+  {
+    //we finished streaming just return
+    return;
+  }
+  else //we stall
+  {
+     //restart timer
+     SchedulePlay(); // with default parm.
+
+    //check if we should abort the download
+    if(requestedRepresentation != NULL && !m_hasDownloadedAllSegments && requestedRepresentation->GetDependencyId().size() > 0) // means we are downloading something with dependencies
+    {
+      //check buffer state
+      if(!mPlayer->GetAdaptationLogic()->hasMinBufferLevel(requestedRepresentation))
+      {
+        //abort download ...
+        NS_LOG_DEBUG("Aborting to download a segment with repId = " << requestedRepresentation->GetId().c_str());
+        super::StopApplication();
+        mPlayer->SetLastDownloadBitRate(0.0);//set dl_bitrate to zero.
+        ScheduleDownloadOfSegment();
+      }
+    }
+  }
+}
+
+template<class Parent>
+double
+MultimediaConsumer<Parent>::consume()
+{
   unsigned int buffer_level = mPlayer->GetBufferLevel();
 
   NS_LOG_DEBUG("Cur Buffer Level = " << buffer_level);
 
   // did we finish streaming yet?
   if (buffer_level == 0 && m_hasDownloadedAllSegments == true)
-  {
-    // yes we did
-    NS_LOG_DEBUG("Finished streaming!");
-    return;
-  }
+     return 0.0;
 
   dash::player::MultimediaBuffer::BufferRepresentationEntry entry = mPlayer->ConsumeFromBuffer();
   double consumedSeconds = entry.segmentDuration;
@@ -651,7 +706,8 @@ MultimediaConsumer<Parent>::DoPlay()
                    entry.bitrate_bit_s, freezeTime, entry.depIds);
 
     NS_LOG_DEBUG("Consuming " << consumedSeconds << " seconds from buffer...");
-    SchedulePlay(consumedSeconds);
+    totalConsumedSegments++;
+    return consumedSeconds;
   }
   else
   {
@@ -664,26 +720,9 @@ MultimediaConsumer<Parent>::DoPlay()
     }
 
     // continue trying to consume... - these are unsmooth seconds
-    SchedulePlay(); // default parameter
-  }
-
-  //check if we should abort the download
-  if(requestedRepresentation != NULL && !m_hasDownloadedAllSegments && requestedRepresentation->GetDependencyId().size() > 0) // means we are downloading something with dependencies
-  {
-    //check buffer state
-    if(!mPlayer->GetAdaptationLogic()->hasMinBufferLevel(requestedRepresentation))
-    {
-      //abort download ...
-      NS_LOG_DEBUG("Aborting to download a segment with repId = " << requestedRepresentation->GetId().c_str());
-      super::StopApplication();
-      ScheduleDownloadOfSegment();
-    }
+    return 0.0; // default parameter
   }
 }
-
-
-
-
 
 
 } // namespace ndn

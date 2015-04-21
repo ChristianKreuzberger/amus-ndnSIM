@@ -4,8 +4,8 @@
 #include "adaptation-logic.hpp"
 #include <cmath>
 
-#define BUFFER_MIN_SIZE 6 // in seconds
-#define BUFFER_ALPHA 4 // in seconds
+#define BUFFER_MIN_SIZE 16 // in seconds
+#define BUFFER_ALPHA 8 // in seconds
 
 namespace dash
 {
@@ -52,9 +52,6 @@ protected:
   }
 
   std::map<int /*level*/, IRepresentation*> m_orderdByDepIdReps;
-
-  int segments_for_growing;
-  int segments_for_upswitching;
 
   double alpha;
   int gamma; //BUFFER_MIN_SIZE
