@@ -96,7 +96,7 @@ MultimediaConsumer<Parent>::GetTypeId(void)
 template<class Parent>
 MultimediaConsumer<Parent>::MultimediaConsumer() : super()
 {
-  NS_LOG_FUNCTION_NOARGS();  
+  NS_LOG_FUNCTION_NOARGS();
   mpd = NULL;
   mPlayer = NULL;
 }
@@ -613,6 +613,7 @@ MultimediaConsumer<Parent>::DownloadSegment()
   super::StopApplication();
   super::SetAttribute("FileToRequest", StringValue(m_baseURL + requestedSegmentURL->GetMediaURI()));
   super::SetAttribute("WriteOutfile", StringValue(""));
+  super::SetAttribute("StartWindowSize", StringValue("10"));
   super::StartApplication();
 }
 

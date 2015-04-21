@@ -143,6 +143,9 @@ FileConsumer::StartApplication() // Called at time specified by Start
   DeviationRTT = 0.0;
   EstimatedRTT = m_initialRTT;
 
+  m_sequenceStatus.clear();
+  m_sequenceStatus.resize(20); // set initial size to 20
+
 
   m_packetsReceived = m_packetsSent = m_packetsTimeout = m_packetsRetransmitted = 0;
 
@@ -210,7 +213,7 @@ FileConsumer::SendPacket()
   bool okay = false;
 
   // did we request or receive the manifest yet?
-  if (!m_hasReceivedManifest)
+  if (!m_hasRequestedManifest)
     okay = SendManifestPacket();
   else // if we did, then we can start streaming
     okay = SendFilePacket();
@@ -569,7 +572,6 @@ void
 FileConsumer::OnManifest(long fileSize)
 {
   // reserve elements in sequence status
-  m_sequenceStatus.clear();
   m_sequenceStatus.resize(ceil(m_fileSize/m_maxPayloadSize)+1);
 
 

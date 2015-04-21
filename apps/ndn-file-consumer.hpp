@@ -181,7 +181,6 @@ protected:
   unsigned int m_packetsTimeout;
   unsigned int m_packetsRetransmitted;
 
-
   void PacketStatsUpdateEvent();
   EventId m_packetStatsUpdateEvent;
 
@@ -204,6 +203,7 @@ private:
   int64_t _start_time;
   int64_t _finished_time;
   shared_ptr<Name> _shared_interestName; // = make_shared<Name>(m_interestName);
+
 
   double
   CalculateDownloadSpeed();

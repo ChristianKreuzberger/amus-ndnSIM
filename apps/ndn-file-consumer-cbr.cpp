@@ -46,6 +46,9 @@ FileConsumerCbr::GetTypeId(void)
       .AddAttribute("WindowSize", "The amount of interests that are issued per second (0 = automatically determine maximum)", UintegerValue(0),
                     MakeUintegerAccessor(&FileConsumerCbr::m_windowSize),
                     MakeUintegerChecker<uint32_t>())
+      .AddAttribute("StartWindowSize", "The amount of interests that are allowed to be issued at the beginning of the download without knowing the actual file size (0 = none)", UintegerValue(0),
+                    MakeUintegerAccessor(&FileConsumerCbr::m_fileStartWindow),
+                    MakeUintegerChecker<uint32_t>())
     ;
 
   return tid;
@@ -111,17 +114,23 @@ FileConsumerCbr::SendPacket()
     m_inFlight++;
   }
 
-
-  if (m_hasReceivedManifest && this->m_fileSize > 0)
-  {
-    if (AreAllSeqReceived())
+  if (m_packetsSent < m_fileStartWindow)
+  {;
+    // schedule next event
+    double rrr = m_rand.GetValue() - 0.5; // randomize the send-time a little bit
+    ScheduleNextSendEvent(rrr + 1000.0 / (double)m_windowSize);
+  } else {
+    if (m_hasReceivedManifest && this->m_fileSize > 0)
     {
-      NS_LOG_DEBUG("Done, triggering OnFileReceived...");
-      OnFileReceived(0, 0);
-    } else {
-      // schedule next event
-      double rrr = m_rand.GetValue() - 0.5; // randomize the send-time a little bit
-      ScheduleNextSendEvent(rrr + 1000.0 / (double)m_windowSize);
+      if (AreAllSeqReceived())
+      {
+        NS_LOG_DEBUG("Done, triggering OnFileReceived...");
+        OnFileReceived(0, 0);
+      } else {
+        // schedule next event
+        double rrr = m_rand.GetValue() - 0.5; // randomize the send-time a little bit
+        ScheduleNextSendEvent(rrr + 1000.0 / (double)m_windowSize);
+      }
     }
   }
 

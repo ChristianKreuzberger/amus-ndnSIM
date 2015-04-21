@@ -60,6 +60,8 @@ protected:
   double m_windowSize;
   unsigned int m_inFlight;
 
+  unsigned int m_fileStartWindow;
+
 
 };
 
