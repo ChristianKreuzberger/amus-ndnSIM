@@ -29,6 +29,11 @@
 #include "face/null-face.hpp"
 #include "available-strategies.hpp"
 
+#include "model/ndn-ns3.hpp"
+#include "../utils/ndn-fw-hop-count-tag.hpp"
+
+
+
 #include <boost/random/uniform_int_distribution.hpp>
 
 namespace nfd {
@@ -114,6 +119,8 @@ Forwarder::onIncomingInterest(Face& inFace, const Interest& interest)
                                               pitEntry, cref(*m_csFace), cref(*csMatch)));
       // set PIT straggler timer
       this->setStragglerTimer(pitEntry, true, csMatch->getFreshnessPeriod());
+
+
 
       // goto outgoing Data pipeline
       this->onOutgoingData(*csMatch, inFace);
@@ -283,11 +290,25 @@ Forwarder::onIncomingData(Face& inFace, const Data& data)
     return;
   }
 
+#ifdef FIX_CS_HOPCOUNT
+  // remove hop count tag before adding to content store !!!
+  ns3::Ptr<ns3::Packet> tmpPacket = ns3::ndn::Convert::ToPacket(data);
+  ns3::ndn::FwHopCountTag tag;
+  tmpPacket->RemovePacketTag(tag);
+
+  // CS insert
+  if (m_csFromNdnSim == nullptr)
+    m_cs.insert(*(ns3::ndn::Convert::FromPacket<Data>(tmpPacket)));
+  else
+    m_csFromNdnSim->Add(ns3::ndn::Convert::FromPacket<Data>(tmpPacket));
+#else
   // CS insert
   if (m_csFromNdnSim == nullptr)
     m_cs.insert(data);
   else
     m_csFromNdnSim->Add(data.shared_from_this());
+#endif
+
 
   std::set<shared_ptr<Face> > pendingDownstreams;
   // foreach PitEntry
