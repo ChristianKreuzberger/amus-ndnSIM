@@ -80,6 +80,10 @@ FileConsumerCbr::StartApplication()
     m_windowSize = floor(max_packets_possible);
   }
 
+  m_maxSeqNo = m_fileStartWindow;
+  m_sequenceStatus.resize(m_fileStartWindow); // set initial size to 20
+  m_fileSize = 1; // temporarily setting this
+
   m_inFlight = 0;
 }
 
@@ -114,11 +118,12 @@ FileConsumerCbr::SendPacket()
     m_inFlight++;
   }
 
-  if (m_packetsSent < m_fileStartWindow)
-  {;
+  if (m_packetsSent < m_fileStartWindow && m_fileSize == 1)
+  {
+    // fprintf(stderr, "Pre-requesting packet no %d\n", m_packetsSent);
     // schedule next event
-    double rrr = m_rand.GetValue() - 0.5; // randomize the send-time a little bit
-    ScheduleNextSendEvent(rrr + 1000.0 / (double)m_windowSize);
+    double rrr = m_rand.GetValue()*5.0 - 2.5; // randomize the send-time a little bit
+    ScheduleNextSendEvent((rrr + 1000.0) / (double)m_windowSize);
   } else {
     if (m_hasReceivedManifest && this->m_fileSize > 0)
     {
@@ -128,8 +133,8 @@ FileConsumerCbr::SendPacket()
         OnFileReceived(0, 0);
       } else {
         // schedule next event
-        double rrr = m_rand.GetValue() - 0.5; // randomize the send-time a little bit
-        ScheduleNextSendEvent(rrr + 1000.0 / (double)m_windowSize);
+        double rrr = m_rand.GetValue()*5.0 - 2.5; // randomize the send-time a little bit
+        ScheduleNextSendEvent((rrr + 1000.0) / (double)m_windowSize);
       }
     }
   }
