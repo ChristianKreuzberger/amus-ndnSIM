@@ -290,6 +290,7 @@ Forwarder::onIncomingData(Face& inFace, const Data& data)
     return;
   }
 
+#define FIX_CS_HOPCOUNT
 #ifdef FIX_CS_HOPCOUNT
   // remove hop count tag before adding to content store !!!
   ns3::Ptr<ns3::Packet> tmpPacket = ns3::ndn::Convert::ToPacket(data);
