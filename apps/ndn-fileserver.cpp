@@ -145,6 +145,7 @@ FileServer::OnInterest(shared_ptr<const Interest> interest)
   else
   {
     seqNo = dataName.at(-1).toSequenceNumber();
+    seqNo = seqNo - 1; // Christian: the client thinks seqNo = 1 is the first one, for the server it's better to start at 0
   }
 
   // remove the last postfix

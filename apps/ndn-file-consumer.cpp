@@ -258,6 +258,8 @@ FileConsumer::SendManifestPacket()
 
   m_interestLifeTime = ns3::Time::FromDouble(timeout, ns3::Time::MS);
 
+  m_sequenceStatus[0] = Requested;
+
   time::milliseconds interestLifeTime(m_interestLifeTime.GetMilliSeconds());
   interest->setInterestLifetime(interestLifeTime);
   CreateTimeoutEvent(0, m_interestLifeTime.GetMilliSeconds());
@@ -279,6 +281,7 @@ FileConsumer::SendFilePacket()
 {
   if (!m_active)
     return false;
+
 
   unsigned seq = GetNextSeqNo();
 
@@ -338,17 +341,19 @@ FileConsumer::SendFilePacket()
 uint32_t
 FileConsumer::GetNextSeqNo()
 {
-  uint32_t seqNo = 0;
+  // start by counting from 1 (seqNo = 0 is the manifest)
+  uint32_t seqNo = 1;
 
-  for ( auto &seqStatus : m_sequenceStatus ) {
+  for (; seqNo <= m_maxSeqNo; seqNo ++)
+  {
+    auto seqStatus = m_sequenceStatus[seqNo];
     if (seqStatus == NotRequested || seqStatus == TimedOut)
     {
       return seqNo;
     }
-    seqNo++;
   }
 
-  return seqNo;
+  return m_maxSeqNo+1;
 }
 
 
@@ -356,7 +361,11 @@ FileConsumer::GetNextSeqNo()
 bool
 FileConsumer::AreAllSeqReceived()
 {
-  for ( auto &seqStatus : m_sequenceStatus ) {
+  uint32_t seqNo = 0;
+
+  for (; seqNo <= m_maxSeqNo; seqNo ++)
+  {
+    auto seqStatus = m_sequenceStatus[seqNo];
     if (seqStatus != Received)
     {
       return false;
@@ -390,6 +399,7 @@ FileConsumer::CheckSeqForTimeout(uint32_t seqNo)
   if (m_hasReceivedManifest == false && seqNo == 0)
   {
     // means this timeout is about the manifest
+    m_sequenceStatus[0] = TimedOut;
     m_hasRequestedManifest = false;
     m_chunkTimeoutEvents[seqNo].Cancel();
     SendPacket();
@@ -574,8 +584,9 @@ FileConsumer::GetFaceMTU(uint32_t faceId)
 void
 FileConsumer::OnManifest(long fileSize)
 {
+  m_sequenceStatus[0] = Received;
   // reserve elements in sequence status
-  m_sequenceStatus.resize(ceil(m_fileSize/m_maxPayloadSize)+1);
+  m_sequenceStatus.resize(m_maxSeqNo+1);
 
 
   if (!m_outFile.empty())
@@ -605,13 +616,13 @@ FileConsumer::OnFileData(uint32_t seq_nr, const uint8_t* data, unsigned length)
   {
 
     // FILE * fp = fopen(m_outFile.c_str(), "ab");
-    if (seq_nr != m_maxSeqNo)
+    if (seq_nr < m_maxSeqNo)
     {
-      memcpy(m_localDataCache + seq_nr*m_maxPayloadSize, data, length);
+      memcpy(m_localDataCache + (seq_nr-1)*m_maxPayloadSize, data, length);
       //fwrite(data, sizeof(uint8_t), length, fp);
     } else
     {
-      memcpy(m_localDataCache + seq_nr*m_maxPayloadSize, data, m_fileSize % m_maxPayloadSize);
+      memcpy(m_localDataCache + (seq_nr-1)*m_maxPayloadSize, data, m_fileSize % m_maxPayloadSize);
       //fwrite(data, sizeof(uint8_t), m_fileSize % m_maxPayloadSize, fp);
     }
     //fclose(fp);

@@ -81,7 +81,7 @@ FileConsumerCbr::StartApplication()
   }
 
   m_maxSeqNo = m_fileStartWindow;
-  m_sequenceStatus.resize(m_fileStartWindow); // set initial size to 20
+  m_sequenceStatus.resize(m_fileStartWindow+1); // set initial size to 20
   m_fileSize = 1; // temporarily setting this
 
   m_inFlight = 0;
