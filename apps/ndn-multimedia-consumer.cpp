@@ -205,7 +205,6 @@ MultimediaConsumer<Parent>::StopApplication() // Called at time specified by Sto
 
   if(mPlayer != NULL)
     delete mPlayer;
-
   mpd = NULL;
   mPlayer = NULL;
 
@@ -458,6 +457,9 @@ MultimediaConsumer<Parent>::OnMultimediaFile()
 {
   NS_LOG_DEBUG("On Multimedia File: " << super::m_interestName);
 
+  if (!super::m_active)
+    return;
+
   // get the current representation id
   // and check if this was an init segment
   if (m_currentDownloadType == InitSegment)
@@ -573,6 +575,7 @@ MultimediaConsumer<Parent>::ScheduleDownloadOfSegment()
 {
   // wait 1 ms (dummy time) before downloading next segment - this prevents some issues
   // with start/stop application and interests coming in late.
+  m_downloadEventTimer.Cancel();
   m_downloadEventTimer = Simulator::Schedule(Seconds(0.001), &MultimediaConsumer<Parent>::DownloadSegment, this);
 }
 
