@@ -480,6 +480,7 @@ MultimediaConsumer<Parent>::OnMultimediaFile()
     //unsigned long curTime = Simulator::Now().GetMilliSeconds();
     //std::cerr << "Normal Segment received after " << (curTime - m_startTime)  << " ms.." << std::endl;
 
+    //fprintf(stderr, "lastBitrate = %f\n", super::lastDownloadBitrate);
     mPlayer->SetLastDownloadBitRate(super::lastDownloadBitrate);
 
     if(mPlayer->EnoughSpaceInBuffer(requestedSegmentNr, requestedRepresentation))
@@ -572,7 +573,7 @@ MultimediaConsumer<Parent>::ScheduleDownloadOfSegment()
 {
   // wait 1 ms (dummy time) before downloading next segment - this prevents some issues
   // with start/stop application and interests coming in late.
-  Simulator::Schedule(Seconds(0.001), &MultimediaConsumer<Parent>::DownloadSegment, this);
+  m_downloadEventTimer = Simulator::Schedule(Seconds(0.001), &MultimediaConsumer<Parent>::DownloadSegment, this);
 }
 
 
