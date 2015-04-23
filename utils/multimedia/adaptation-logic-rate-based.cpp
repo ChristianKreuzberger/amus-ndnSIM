@@ -32,6 +32,15 @@ RateBasedAdaptationLogic::GetNextSegment(unsigned int *requested_segment_number,
 {
   double last_download_speed = this->m_multimediaPlayer->GetLastDownloadBitRate();
 
+  if(currentSegmentNumber < getTotalSegments ())
+    *hasDownloadedAllSegments = false;
+  else
+  {
+    *hasDownloadedAllSegments = true;
+    return NULL; // everything downloaded
+  }
+
+
   const IRepresentation* useRep = NULL;
 
   double highest_bitrate = 0.0;

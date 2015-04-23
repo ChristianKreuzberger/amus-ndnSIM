@@ -135,13 +135,11 @@ FileConsumer::StartApplication() // Called at time specified by Start
   m_curSeqNo = -1;
   m_maxSeqNo = -1;
   m_lastSeqNoReceived = -1;
-  m_sequenceStatus.clear();
 
   DeviationRTT = 0.0;
   EstimatedRTT = m_initialRTT;
 
   m_sequenceStatus.clear();
-  m_sequenceStatus.resize(20); // set initial size to 20
 
 
   m_packetsReceived = m_packetsSent = m_packetsTimeout = m_packetsRetransmitted = 0;
@@ -642,7 +640,7 @@ FileConsumer::ScheduleNextSendEvent(double miliseconds)
 {
   NS_LOG_FUNCTION(this << miliseconds);
 
-  if (miliseconds < 0.00)
+  if (miliseconds <= 0.00)
     miliseconds = 0.01;
 
   //NS_LOG_UNCOND("Curtime: " << Simulator::Now().GetMilliSeconds());

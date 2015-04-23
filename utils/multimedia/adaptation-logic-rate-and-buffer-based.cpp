@@ -31,6 +31,14 @@ ISegmentURL*
 RateAndBufferBasedAdaptationLogic::GetNextSegment(unsigned int *requested_segment_number,
                                                   const dash::mpd::IRepresentation **usedRepresentation, bool *hasDownloadedAllSegments)
 {
+  if(currentSegmentNumber < getTotalSegments ())
+    *hasDownloadedAllSegments = false;
+  else
+  {
+    *hasDownloadedAllSegments = true;
+    return NULL; // everything downloaded
+  }
+
   const IRepresentation* useRep = NULL;;
 
   double factor = 1.0;
