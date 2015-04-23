@@ -191,6 +191,8 @@ FileConsumer::StopApplication() // Called at time specified by Stop
     m_localDataCache = NULL;
   }
 
+  m_outFile = "";
+
   // cleanup base stuff
   App::StopApplication();
 }
@@ -507,7 +509,6 @@ FileConsumer::OnData(shared_ptr<const Data> data)
         m_curSeqNo = 0;
         m_maxSeqNo = ceil((double)m_fileSize/(double)m_maxPayloadSize);
         NS_LOG_UNCOND("Resulting Max Seq Nr = " << m_maxSeqNo);
-        fprintf(stderr, "File Size = %d, Max SEq No = %d\n", m_fileSize, m_maxSeqNo);
 
         // Trigger OnManifest
         m_chunkTimeoutEvents[0].Cancel();
@@ -620,12 +621,10 @@ FileConsumer::OnFileData(uint32_t seq_nr, const uint8_t* data, unsigned length)
     if (seq_nr < m_maxSeqNo)
     {
       memcpy(m_localDataCache + (seq_nr-1)*m_maxPayloadSize, data, length);
-      fprintf(stderr, "Writeing seq=%d to location %d\n", seq_nr, (seq_nr-1)*m_maxPayloadSize);
       //fwrite(data, sizeof(uint8_t), length, fp);
     } else
     {
       memcpy(m_localDataCache + (seq_nr-1)*m_maxPayloadSize, data, m_fileSize % m_maxPayloadSize);
-      fprintf(stderr, "Writeing final seq=%d to location %d\n", seq_nr, (seq_nr-1)*m_maxPayloadSize);
       //fwrite(data, sizeof(uint8_t), m_fileSize % m_maxPayloadSize, fp);
     }
     //fclose(fp);
