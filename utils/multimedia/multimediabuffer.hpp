@@ -52,6 +52,9 @@ public:
   unsigned int getHighestBufferedSegmentNr(std::string repId);
   unsigned int nextSegmentNrToBeConsumed(){return toConsumeSegmentNumber;}
 
+  double getBufferedPercentage();
+  double getBufferedPercentage(std::string repId);
+
 protected:
   double maxBufferedSeconds;
 

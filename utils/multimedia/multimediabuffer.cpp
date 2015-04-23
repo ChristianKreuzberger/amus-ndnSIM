@@ -179,3 +179,13 @@ MultimediaBuffer::BufferRepresentationEntry MultimediaBuffer::getHighestConsumab
   return consumableEntry;
 }
 
+double MultimediaBuffer::getBufferedPercentage()
+{
+  return getBufferedSeconds() / maxBufferedSeconds;
+}
+
+double MultimediaBuffer::getBufferedPercentage(std::string repId)
+{
+  return getBufferedSeconds (repId) / maxBufferedSeconds;
+}
+
