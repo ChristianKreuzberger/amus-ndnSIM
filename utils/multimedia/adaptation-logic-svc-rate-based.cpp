@@ -31,7 +31,8 @@ SVCRateBasedAdaptationLogic::GetNextSegment(unsigned int *requested_segment_numb
   //update EMA of download bitrate
   updateEMA ();
 
-  //fprintf(stderr, "bitrate = %f\n",ema_download_bitrate);
+  //fprintf(stderr, "bufferLevel = %f\n", m_multimediaPlayer->GetBufferPercentage());
+  //fprintf(stderr, "ema_download_bitrate = %f\n",ema_download_bitrate);
 
   if(!hasMinBufferLevel () || //check if we have the minbuffer level
      (repsForCurSegment.empty () && m_multimediaPlayer->GetBufferLevel() < bufMinLevel + GrowingBuffer)) // check if stack is empty if we should download a rep based on EMA bitrate
@@ -49,7 +50,17 @@ SVCRateBasedAdaptationLogic::GetNextSegment(unsigned int *requested_segment_numb
   }
   else if (repsForCurSegment.empty ()) // we need new stack for downloading
   {
-  //evaluate the max_rep we would like to take
+    //evaluate the max_rep we would like to take
+    double max_allowed_bitrate = ema_download_bitrate; //
+    if(m_multimediaPlayer->GetBufferPercentage() > 0.5) // we dont need to "lower" bitrate when buffer is nearly empty as we have a MinBufferCheck before
+    {
+      max_allowed_bitrate *= 1.2;
+    }
+    else if(m_multimediaPlayer->GetBufferPercentage() > 0.75)
+    {
+      max_allowed_bitrate *= 1.3;
+    }
+    //fprintf(stderr, "max_allowed_bitrate = %f\n\n",max_allowed_bitrate);
 
     //const IRepresentation* useRep = GetLowestRepresentation();
     int layerForRep = 0;
@@ -59,7 +70,7 @@ SVCRateBasedAdaptationLogic::GetNextSegment(unsigned int *requested_segment_numb
     {
       const IRepresentation* rep = it->second;
       //std::cerr << "Rep=" << keyValue.first << " has bitrate " << rep->GetBandwidth() << std::endl;
-      if (rep->GetBandwidth() < ema_download_bitrate)
+      if (rep->GetBandwidth() < max_allowed_bitrate)
       {
         if (rep->GetBandwidth() > highest_bitrate)
         {

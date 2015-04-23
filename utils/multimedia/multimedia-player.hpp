@@ -46,6 +46,8 @@ public:
   bool EnoughSpaceInBuffer(unsigned int segmentNr, const dash::mpd::IRepresentation* usedRepresentation);
 
   double GetBufferLevel(std::string repId = std::string("NULL"));
+  double GetBufferPercentage(std::string repId = std::string("NULL"));
+
   unsigned int getHighestBufferedSegmentNr(std::string repId);
   unsigned int nextSegmentNrToConsume();
 

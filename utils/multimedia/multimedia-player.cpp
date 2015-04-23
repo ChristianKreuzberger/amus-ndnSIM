@@ -100,6 +100,15 @@ MultimediaPlayer::GetBufferLevel(std::string repId)
     return m_buffer->getBufferedSeconds (repId);
 }
 
+double
+MultimediaPlayer::GetBufferPercentage(std::string repId)
+{
+  if(repId.compare ("NULL") == 0)
+    return m_buffer->getBufferedPercentage ();
+  else
+    return m_buffer->getBufferedPercentage (repId);
+}
+
 unsigned int
 MultimediaPlayer::getHighestBufferedSegmentNr(std::string repId)
 {
