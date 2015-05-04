@@ -200,11 +200,13 @@ MultimediaConsumer<Parent>::StopApplication() // Called at time specified by Sto
     }
   }
 
-  if(mpd != NULL)
+  // clean up mpd/DASH specific stuff
+  if (mpd != NULL)
     delete mpd;
 
-  if(mPlayer != NULL)
+  if (mPlayer != NULL)
     delete mPlayer;
+
   mpd = NULL;
   mPlayer = NULL;
 
@@ -237,6 +239,10 @@ MultimediaConsumer<Parent>::OnMpdFile()
   dash::IDASHManager *manager;
   manager = CreateDashManager();
   mpd = manager->Open((char*)m_tempMpdFile.c_str());
+
+  // We don't need the manager anymore...
+  manager->Delete();
+  manager = NULL;
 
   if (mpd == NULL)
   {
