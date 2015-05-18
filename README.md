@@ -74,6 +74,43 @@ libdash.
 	cd ns-3
 	./waf configure -d optimized --with-brite=/home/$USER/ndnSIM/BRITE 
 	./waf
+```
+
+The result should be something like this:
+```
+---- Summary of optional NS-3 features:
+Build profile                 : optimized
+Build directory               : /home/ckreuz/ndnSIM/ns-3/build
+Python Bindings               : enabled
+Python API Scanning Support   : not enabled (Missing 'pygccxml' Python module)
+BRITE Integration             : enabled
+NS-3 Click Integration        : not enabled (nsclick not enabled (see option --with-nsclick))
+GtkConfigStore                : not enabled (library 'gtk+-2.0 >= 2.12' not found)
+XmlIo                         : enabled
+Threading Primitives          : enabled
+Real Time Simulator           : enabled
+Emulated Net Device           : enabled
+File descriptor NetDevice     : enabled
+Tap FdNetDevice               : enabled
+Emulation FdNetDevice         : enabled
+PlanetLab FdNetDevice         : not enabled (PlanetLab operating system not detected (see option --force-planetlab))
+Network Simulation Cradle     : not enabled (NSC not found (see option --with-nsc))
+MPI Support                   : not enabled (option --enable-mpi not selected)
+LIBDASH Integration           : enabled
+ndnSIM                        : enabled
+NS-3 OpenFlow Integration     : not enabled (OpenFlow not enabled (see option --with-openflow))
+SQlite stats data output      : enabled
+Tap Bridge                    : enabled
+PyViz visualizer              : enabled
+Use sudo to set suid bit      : not enabled (option --enable-sudo not selected)
+Build tests                   : not enabled (defaults to disabled)
+Build examples                : not enabled (defaults to disabled)
+GNU Scientific Library (GSL)  : not enabled (GSL not found)
+```
+
+Now install it and run a scenario to test it:
+
+```
 	sudo ./waf install
 
 
