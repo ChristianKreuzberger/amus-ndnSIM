@@ -23,6 +23,7 @@ libdash.
 * Build ns-3 with amus-ndnSIM
 
 
+```bash
 	# install pre-requesits for ndn-cxx, ns-3, etc...
 	sudo apt-get install git
 	sudo apt-get install python-dev python-pygraphviz python-kiwi
@@ -78,19 +79,19 @@ libdash.
 
 	# run a scenario
 	./waf --run ndn-file-cbr
-
+```
 
 
 ## Info about libdash
-If you have libdash already installed, make sure to specify the --with-dash option,e .g.:
+If you have libdash already installed, make sure to specify the `--with-dash` option,e .g.:
 
     ./waf configure -d optimized --with-brite=/home/$USER/ndnSIM/BRITE --with-dash=/path/to/libdash
     
     
-Make sure that the following files and subfolders are available in /path/to/libdash:
+Make sure that the following files and subfolders are available in `/path/to/libdash`:
 
-* libdash/include/libdash.h
-* build/bin/libdash.so
+* `libdash/include/libdash.h`
+* `build/bin/libdash.so`
 
 These are standard-paths as created by the makefile for libdash.
 
