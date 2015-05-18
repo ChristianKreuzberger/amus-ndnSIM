@@ -151,4 +151,14 @@ links:
 * [DASH Industry Forum](http://dashif.org/)
 
 
+---------------------------------------------
+
+
+Acknowledgements
+================
+This work was partially funded by the Austrian Science Fund (FWF) under the CHIST-ERA project [CONCERT](http://www.concert-project.org/) 
+(A Context-Adaptive Content Ecosystem Under Uncertainty), project number I1402.
+
+
+
 
