@@ -15,6 +15,11 @@ def options(opt):
     opt.load(['dependency-checker',
               'doxygen', 'sphinx_build', 'type_traits', 'compiler-features'],
              tooldir=['%s/.waf-tools' % opt.path.abspath()])
+    opt.add_option('--with-dash',
+                   help=('libdash path - assuming ../libdash/libdash/ if not provided'
+                         '  - should contain the following subfolders: libdash/include/, build/bin/ '
+                         '  - should contain the following files: header files, shared object (libdash.so)'),
+                   default=False, dest='with_dash')
     
 
 def configure(conf):
@@ -31,7 +36,46 @@ def configure(conf):
             '/opt/local/lib/pkgconfig'])
     conf.check_cfg(package='libndn-cxx', args=['--cflags', '--libs'],
                    uselib_store='NDN_CXX', mandatory=True)
+
     
+ 
+    # check for libdash
+    conf.env['ENABLE_DASH'] = False
+    lib_to_check = 'libdash.so'
+    libdash_default_dir = "../libdash/libdash/" # according to tutorial
+
+    if Options.options.with_dash:
+        conf.msg("Checking LIBDASH location", ("%s (given)" % Options.options.with_dash))
+        libdash_dir = os.path.abspath(os.path.join(Options.options.with_dash, "build/bin/"))
+        if os.path.exists(os.path.join(libdash_dir, lib_to_check)):
+            conf.env['WITH_DASH'] = os.path.abspath(Options.options.with_dash)
+        else:
+            # Add this module to the list of modules that won't be built
+            # if they are enabled.
+            Logs.error ("amus-ndnSIM requires libdash. Please consult the manual and documentation for details.")
+            Logs.error ("Could not find " +  lib_to_check  + " in " + os.path.join(libdash_dir, lib_to_check))
+            conf.env['MODULES_NOT_BUILT'].append('dash')
+            conf.report_optional_feature("libdash", "LIBDASH Integration",  False, "Not found in " + str(Options.options.with_dash) + " (see option --with-dash)")
+            return
+    else:
+        # No user specified '--with-dash' option, try to guess
+        # we have built it, so it should be in ../libdash/libdash/
+        libdash_dir = os.path.abspath(os.path.join(libdash_default_dir, "build/bin/"))
+
+        if os.path.exists(os.path.join(libdash_dir, lib_to_check)):
+            conf.msg("Checking for LIBDASH location", ("%s (guessed)" % libdash_default_dir))
+            conf.env['WITH_DASH'] = os.path.abspath(libdash_default_dir)
+        else:
+            # Add this module to the list of modules that won't be built
+            # if they are enabled.
+            Logs.error ("amus-ndnSIM requires libdash. Please consult the manual and documentation for details.")
+            Logs.error ("Could not find " +  lib_to_check  + " in " + os.path.join(libdash_dir, lib_to_check))
+            conf.env['MODULES_NOT_BUILT'].append('dash')
+            conf.report_optional_feature("libdash", "LIBDASH Integration",  False, "Not found in " + str(libdash_default_dir) + " (see option --with-dash)")
+            return
+    # end if - libdash should be found now
+
+
     test_code = '''
 #include "libdash.h"
 
@@ -41,12 +85,24 @@ int main()
 }
 '''
 
-    conf.env.append_value('INCLUDES', os.path.abspath(os.path.join("../libdash/libdash/libdash/include/", ".")))
+    conf.env.append_value('NS3_MODULE_PATH',os.path.abspath(os.path.join(conf.env['WITH_DASH'], 'build/bin/')))
 
-    conf.check(args=["--cflags", "--libs"], fragment=test_code, package='libdash', lib='dash', mandatory=True, define_name='DASH', 
-                                                    uselib_store='DASH',libpath=os.path.abspath(os.path.join("../libdash/libdash/build/bin/", ".")))
+    conf.env['INCLUDES_DASH'] = os.path.join(conf.env['WITH_DASH'], "libdash/include/")
+    conf.env['LIBPATH_DASH'] = [ os.path.join(conf.env['WITH_DASH'], "build/bin/") ]
 
-    conf.env.append_value('NS3_MODULE_PATH',os.path.abspath(os.path.join("../libdash/libdash/build/bin/", ".")))
+    conf.env['DASH'] = conf.check(fragment=test_code, lib='dash', libpath=conf.env['LIBPATH_DASH'], use='DASH', mandatory=False)
+
+    if conf.env['DASH']:
+        conf.env['ENABLE_DASH'] = True
+        conf.env.append_value('CXXDEFINES', 'NS3_LIBDASH')
+        conf.report_optional_feature("libdash", "LIBDASH Integration", True, "Found in " + str(os.path.join(conf.env['WITH_DASH'])))
+    else:
+        Logs.error ("amus-ndnSIM requires libdash. Please consult the manual and documentation for details.")
+        Logs.error ("   failed to compile test_code for libdash")
+        Logs.error ("   Please ensure that libdash.h is available in " + str(conf.env['INCLUDES_DASH']))
+        conf.env['MODULES_NOT_BUILT'].append('libdash')
+        conf.report_optional_feature("libdash", "LIBDASH Integration",  False, "Not found in " + str(os.path.join(conf.env['WITH_DASH']) + ", (see option --with-dash)"))
+        return
 
 
     if not conf.env['LIB_BOOST']:

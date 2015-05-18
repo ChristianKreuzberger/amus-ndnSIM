@@ -1,11 +1,27 @@
 amus-ndnSIM
 ===========
 
-This is a custom version of ndnSIM 2.0, supporting adaptive multimedia streaming and the BRITE extension.
-Please refer to the original [ndnSIM github repository](http://github.com/named-data/ndnSIM) for documentation.
+This is a custom version of ndnSIM 2.0, supporting Adaptive Multimedia Streaming and the BRITE extension.
+Please refer to the original [ndnSIM github repository](http://github.com/named-data/ndnSIM) for documentation about
+ndnSIM and ns-3.
+
+Adaptive Multimedia Streaming Simulator for NDN is trying to create a bridge between the multimedia and NDN community.
+Therefore it is providing several scenarios and the source code for adaptive streaming with NDN, based on ndnSIM and
+libdash.
 
 ---------------------------------------------
-Installing Procedure:
+
+## Installing Procedure:
+
+* Install Pre-Requesits for ndn-cxx, ns-3, BRITE
+* Install Pre-Requesits for libdash
+* Clone git repositories
+* Download Brite repository
+* Build Brite
+* Build ndn-cxx
+* Build libdash
+* Build ns-3 with amus-ndnSIM
+
 
 	# install pre-requesits for ndn-cxx, ns-3, etc...
 	sudo apt-get install git
@@ -55,7 +71,7 @@ Installing Procedure:
 
 	# build ns-3/ndnSIM with brite and dash enabled
 	cd ns-3
-	./waf configure -d optimized --with-brite=/home/$USER/ndnSIM/BRITE
+	./waf configure -d optimized --with-brite=/home/$USER/ndnSIM/BRITE 
 	./waf
 	sudo ./waf install
 
@@ -64,21 +80,37 @@ Installing Procedure:
 	./waf --run ndn-file-cbr
 
 
+
+## Info about libdash
+If you have libdash already installed, make sure to specify the --with-dash option,e .g.:
+
+    ./waf configure -d optimized --with-brite=/home/$USER/ndnSIM/BRITE --with-dash=/path/to/libdash
+    
+    
+Make sure that the following files and subfolders are available in /path/to/libdash:
+
+* libdash/include/libdash.h
+* build/bin/libdash.so
+
+These are standard-paths as created by the makefile for libdash.
+
+
 ---------------------------------------------
-ndnSIM 2.0 is a new release of [NS-3 based Named Data Networking (NDN)
-simulator](http://ndnsim.net/1.0/) that went through extensive refactoring and rewriting.
-The key new features of the new version:
 
-- ndnSIM no longer re-implements basic NDN primitives and directly uses implementation from
-  [ndn-cxx library (NDN C++ library with eXperimental eXtensions)](http://named-data.net/doc/ndn-cxx/)
+## Scenario Template
+In addition, we also provide a scenario-template. All you need to do is download and install amus-ndnSIM once, and then
+continue with the [amus-ndnSIM scenario template](http://github.com/ChristianKreuzberger/amus-scenario).
 
-- All NDN forwarding and management is implemented directly using source code of
-  [Named Data Networking Forwarding Daemon (NFD)](http://named-data.net/doc/NFD/)
-
-- Packet format changed to [NDN-TLV](http://named-data.net/doc/ndn-tlv/)
-
-[ndnSIM 2.0 documentation](http://ndnsim.net)
 ---------------------------------------------
 
-For more information, including downloading and compilation instruction, please refer to
-http://ndnsim.net or documentation in `docs/` folder.
+## What is MPEG-DASH?
+MPEG-DASH (ISO/IEC 23009-1:2012) is a standard for adaptive multimedia streaming over HTTP connections, which is 
+adapted for NDN file-transfers in this project. For more information about MPEG-DASH, please consult the following
+links:
+
+* [DASH at Wikipedia](http://en.wikipedia.org/wiki/Dynamic_Adaptive_Streaming_over_HTTP)
+* [Slideshare: DASH - From content creation to consumption](http://de.slideshare.net/christian.timmerer/dynamic-adaptive-streaming-over-http-from-content-creation-to-consumption)
+* [DASH Industry Forum](http://dashif.org/)
+
+
+
