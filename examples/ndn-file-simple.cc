@@ -104,7 +104,7 @@ main(int argc, char* argv[])
   // Consumer will request /prefix/0, /prefix/1, ...
   consumerHelper.SetAttribute("FileToRequest", StringValue("/prefix/random-variable-stream.h"));
   //consumerHelper.SetAttribute("WriteOutfile", StringValue("/home/ckreuz/index.out.html"));
-  consumerHelper.SetAttribute("MaxPayloadSize", StringValue("1400"));
+
 
   // Start one consumer at 1.0 seconds, the other consumer at 2.0 seconds
   consumerHelper.Install(nodes.Get(0));
@@ -125,7 +125,7 @@ main(int argc, char* argv[])
   // Producer will reply to all requests starting with /prefix
   producerHelper.SetPrefix("/prefix");
   producerHelper.SetAttribute("ContentDirectory", StringValue("/usr/local/include/ns3-dev/ns3/"));
-  producerHelper.SetAttribute("MaxPayloadSize", StringValue("1400"));
+
   producerHelper.Install(nodes.Get(2)); // last node
 
   Simulator::Stop(Seconds(60.0));

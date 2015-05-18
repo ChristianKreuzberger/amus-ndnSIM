@@ -193,8 +193,6 @@ Consumer::SendPacket()
   // NS_LOG_INFO ("Requesting Interest: \n" << *interest);
   NS_LOG_INFO("> Interest for " << seq);
 
-  //fprintf(stderr, "size=%d\n",interest->wireEncode().size());
-
   WillSendOutInterest(seq);
 
   m_transmittedInterests(interest, this, m_face);
@@ -216,8 +214,6 @@ Consumer::OnData(shared_ptr<const Data> data)
   App::OnData(data); // tracing inside
 
   NS_LOG_FUNCTION(this << data);
-
-  //fprintf(stderr, "size=%d\n",data->wireEncode().size());
 
   // NS_LOG_INFO ("Received content object: " << boost::cref(*data));
 
