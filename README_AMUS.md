@@ -227,9 +227,10 @@ While there are plenty of programs out there to create MPEG-DASH streams, reprod
 
 In the following, we will provide an example for multimedia streaming with DASH/AVC and DASH/SVC, based on those two datasets. We selected the Big Buck Bunny movie to achieve compareable results.
 
-## DASH/AVC Streaming
-Download http://www-itec.uni-klu.ac.at/ftp/datasets/mmsys12/BigBuckBunny/bunny_2s/BigBuckBunny_2s_isoffmain_DIS_23009_1_v_2_1c2_2011_08_30.mpd
-Download http://www-itec.uni-klu.ac.at/ftp/datasets/mmsys12/BigBuckBunny/bunny_2s/
+### DASH/AVC Streaming
+**Note:** This will require roughly 4 Gigabyte of diskspace
+We are going to download the BigBuckBunny movie from the DASH/AVC Dataset, segment length 2 seconds.
+First of all, download the video files from [here](http://www-itec.uni-klu.ac.at/ftp/datasets/mmsys12/BigBuckBunny/bunny_2s/):
 ```bash
 cd ~
 mkdir -p multimediaData/AVC/BBB/
@@ -237,11 +238,27 @@ cd multimediaData/AVC/BBB/
 
 wget -r --no-parent --cut-dirs=5 --no-host --reject "index.html" http://www-itec.uni-klu.ac.at/ftp/datasets/mmsys12/BigBuckBunny/bunny_2s/
 ```
+this folder should also contain the MPD file ``BigBuckBunny_2s_isoffmain_DIS_23009_1_v_2_1c2_2011_08_30.mpd``, if not, you can download the
+ [MPD file](http://www-itec.uni-klu.ac.at/ftp/datasets/mmsys12/BigBuckBunny/bunny_2s/BigBuckBunny_2s_isoffmain_DIS_23009_1_v_2_1c2_2011_08_30.mpd) manually.
+```bash
+wget http://www-itec.uni-klu.ac.at/ftp/datasets/mmsys12/BigBuckBunny/bunny_2s/BigBuckBunny_2s_isoffmain_DIS_23009_1_v_2_1c2_2011_08_30.mpd
+```
+Open the MPD in an editor of your choice, and locate the ``<BaseURL>`` tag. Change
+```xml
+<BaseURL>http://www-itec.uni-klu.ac.at/ftp/datasets/mmsys12/BigBuckBunny/bunny_2s/</BaseURL>
+```
+to
+```xml
+<BaseURL>/myprefix/AVC/BBB/</BaseURL>
+```
+Furthermore, we recommend renaming the file to a name of your choice, e.g., BBB-2s.mpd.
+```bash
+mv BigBuckBunny_2s_isoffmain_DIS_23009_1_v_2_1c2_2011_08_30.mpd BBB-2s.mpd
+```
 
-
-## DASH/SVC Streaming
-Download http://concert.itec.aau.at/SVCDataset/dataset/mpd/BBB-III.mpd
-Download http://concert.itec.aau.at/SVCDataset/dataset/BBB/III/segs/
+### DASH/SVC Streaming
+**Note:** This will require roughly 1 Gigabyte of diskspace
+We are going to download the BigBuckBunny movie from the DASH/SVC Dataset, with a segment length of 2 seconds, and no temporal scalability. First of all, download the video files from [here](http://concert.itec.aau.at/SVCDataset/dataset/BBB/III/segs/).
 ```bash
 cd ~
 mkdir -p multimediaData/SVC/BBB/
@@ -250,6 +267,121 @@ mkdir III
 cd III
 wget -r --no-parent --no-host-directories --no-directories http://concert.itec.aau.at/SVCDataset/dataset/BBB/III/segs/1080p/
 ```
+Second, download the [MPD file](http://concert.itec.aau.at/SVCDataset/dataset/mpd/BBB-III.mpd).
+```bash
+wget http://concert.itec.aau.at/SVCDataset/dataset/mpd/BBB-III.mpd
+```
+Open the MPD in an editor of your choice, and locate the ``<BaseURL>`` tag. Change
+```xml
+<BaseURL>http://concert.itec.aau.at/SVCDataset/dataset/BBB/III/segs/1080p/</BaseURL>
+```
+to
+```xml
+<BaseURL>/myprefix/SVC/BBB/III/</BaseURL>
+```
+
+### Creating a Server
+This is really simple:
+```cplusplus
+  // Producer
+  ndn::AppHelper producerHelper("ns3::ndn::FileServer");
+
+  // Producer will reply to all requests starting with /myprefix
+  producerHelper.SetPrefix("/myprefix");
+  producerHelper.SetAttribute("ContentDirectory", StringValue("/home/username/multimediaData/"));
+  producerHelper.Install(nodes.Get(0)); // install to some node from nodelist
+
+```
+Done!
+
+## Basics: Using the Multimedia Consumer
+### AVC Content
+Our multimedia consumers are built on top of the FileConsumers, therefore it is necessary to specify which FileConsumer you want. We recommend using the ``FileConsumerCbr`` class, hence you should use the following code for requesting AVC content:
+```cplusplus
+  ns3::ndn::AppHelper consumerHelper("ns3::ndn::FileConsumerCbr::MultimediaConsumer");
+  consumerHelper.SetAttribute("AllowUpscale", BooleanValue(true));
+  consumerHelper.SetAttribute("AllowDownscale", BooleanValue(false));
+  consumerHelper.SetAttribute("ScreenWidth", UintegerValue(1920));
+  consumerHelper.SetAttribute("ScreenHeight", UintegerValue(1080));
+  consumerHelper.SetAttribute("StartRepresentationId", StringValue("auto"));
+  consumerHelper.SetAttribute("MaxBufferedSeconds", UintegerValue(30));
+  consumerHelper.SetAttribute("StartUpDelay", StringValue("0.1"));
+
+  consumerHelper.SetAttribute("AdaptationLogic", StringValue("dash::player::RateAndBufferBasedAdaptationLogic"));
+  consumerHelper.SetAttribute("MpdFileToRequest", StringValue(std::string("/myprefix/AVC/BBB/BBB-2s.mpd" )));
+
+  ApplicationContainer app1 = consumerHelper.Install (nodes.Get(2));
+```
+
+See examples/ndn-multimedia-simple-avc-example1.cpp for the full example.
+
+### SVC Content
+This is very similar to the AVC case, you just need to specify a different adaptation logic (and the correct MPD file):
+
+```cplusplus
+  ns3::ndn::AppHelper consumerHelper("ns3::ndn::FileConsumerCbr::MultimediaConsumer");
+  consumerHelper.SetAttribute("AllowUpscale", BooleanValue(true));
+  consumerHelper.SetAttribute("AllowDownscale", BooleanValue(false));
+  consumerHelper.SetAttribute("ScreenWidth", UintegerValue(1920));
+  consumerHelper.SetAttribute("ScreenHeight", UintegerValue(1080));
+  consumerHelper.SetAttribute("StartRepresentationId", StringValue("auto"));
+  consumerHelper.SetAttribute("MaxBufferedSeconds", UintegerValue(30));
+  consumerHelper.SetAttribute("StartUpDelay", StringValue("0.1"));
+
+  consumerHelper.SetAttribute("AdaptationLogic", StringValue("dash::player::SVCBufferBasedAdaptationLogic"));
+  consumerHelper.SetAttribute("MpdFileToRequest", StringValue(std::string("/myprefix/SVC/BBB/BBB-III.mpd" )));
+
+  ApplicationContainer app1 = consumerHelper.Install (nodes.Get(2));
+```
+
+
+See examples/ndn-multimedia-simple-svc-example1.cpp for the full example.
+
+
+## Multimedia Consumers Options
+Our Multimedia Consumers have plenty of options to be configured. First of all, the two most important ones are 
+
+ * ``AdaptationLogic`` 
+ *  ``MpdFileToRequest``
+
+``MpdFileToRequest`` is, like the name suggests, the MPD file of the video to play. 
+``AdaptationLogic``  depends heavily on the MPD file. If the MPD file contains SVC content, the following adaptation logics are available: 
+
+ * ``adaptation-logic-svc-buffer-based``
+ * ``adaptation-logic-svc-rate-based.cpp``
+ * ``adaptation-no-logic``
+ 
+For AVC:
+
+ * ``adaptation-logic-always-lowest``
+ * ``adaptation-logic-manual``
+ * ``adaptation-logic-rate-based``
+ * ``adaptation-logic-rate-and-buffer-based``
+
+TODO: Describe Adaptation Logic behaviour
+
+
+Then we have several options that the clients can use for their "simulated screens":
+
+ * ``ScreenWidth`` and ``ScreenHeight``
+ * ``AllowUpscale`` and ``AllowDownscale``
+
+Those 4 options are used to determine which representations from the MPD file are unusable for the client. For example, if you have a mobile phone with a 1280x720 screen, you should not request a representation with 1920x1080 and downscale the video.
+Instead, you can request the 640x320 representation and upscale it to 1280x720 or request the 1280x720 representation and use it without scaling. For some scenarios it might even be necessary to disable upscaling too.
+
+
+ * ``MaxBufferedSeconds``
+ * ``StartUpDelay``
+
+Those options are used to determine the maximum amount of buffered seconds. While on most computers, this number could be rather large, especially with mobile phones and tablets this number is restricted by the available memory. Common practice for those is around 30 seconds.
+The ``StartUpDelay`` is used for scenarios, where you want the client to buffer first, and start playing after a certain amount of time. This could beneficial for scenarios where you have a slow Internet connection, as it is better to buffer first, and then play. If set to 0, the player will start playing the video as soon as the first segment has been successfully downloaded.
+
+ * ``StartRepresentationId``
+
+This is for testing purpose only, please set to ``auto``.
+
+## Multimedia Consumers and Tracers
+
 
 ------------------
 # Part 3: Building Large Networks and Installing Multimedia Clients
