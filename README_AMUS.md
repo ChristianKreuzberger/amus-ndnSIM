@@ -380,17 +380,74 @@ The ``StartUpDelay`` is used for scenarios, where you want the client to buffer 
 Can take the following values: "lowest", "auto" (means: use adaptation logic) or a certain representation id. This attribute is for testing purpose, and we recommend using "auto".
 
 ## Multimedia Consumers and Tracers
+For evaluation purpose, we have a special tracer for multimedia consumers available. This tracer logs the following events:
+
+ * Segment consumed at which time with representation id and representation bitrate
+ * Video playback stall (freeze)
+ * Start-up delay
+
+Example:
+```cplusplus
+// include the header file
+#include "ns3/ndnSIM/utils/tracers/ndn-dashplayer-tracer.hpp"
+
+// ...
+int
+main(int argc, char* argv[])
+{
+  // ...
+  // install the tracer
+  ndn::DASHPlayerTracer::InstallAll("dash-output.txt");
+
+  Simulator::Run();
+  Simulator::Destroy();
+  // ...
+}
+```
+
+The output will be a CSV file called dash-output.txt, and look like this (for SVC content)
+```
+Time  Node  SegmentNumber   SegmentDuration(sec)  SegmentRepID SegmentBitrate(bit/s)  StallingTime(msec) SegmentDepIds
+0.42821 2       0                 2                        0               624758                  0
+2.42821 2       1                 2                        0               624758                  0
+...
+18.4282 2       9                 2                        0               624758                  0
+20.4282 2       10                2                        1               2122081                 0       0
+...
+26.4282 2       13                2                        1               2122081                 0       0
+28.4282 2       14                2                        2               5108358                 0       0,1
+30.4282 2       15                2                        2               5108358                 0       0,1
+32.4282 2       16                2                        2               5108358                 0       0,1
+34.4282 2       17                2                        2               5108358                 0       0,1
+36.4282 2       18                2                        3               9885231                 0       0,1,2
+38.4282 2       19                2                        3               9885231                 0       0,1,2
+...
+```
+AVC content will look similar, but will not have the SegmentDepIds filled at all.
+
+See examples/ndn-multimedia-simple-avc-example2-tracer.cpp and See examples/ndn-multimedia-simple-svc-example2-tracer.cpp for the full sourcecode.
+
+### Other Tracers
+For evaluation purposes most other tracers should also work, for instance, Content Store Tracer. Please note, that due to some limitations with ns-3/ndnSIM, the AppId of the MultimediaConsumer will change over time, therefore you need to filter the Node (NodeId), instead of AppId in all traces.
 
 
 ------------------
 
-# Part 3: Use Cases and Examples
+# Part 3: Building Large Networks with BRITE and Installing Multimedia Clients
 
 
 ------------------
 
+# Part 4: Use Cases/Scenarios and Examples
+## Scenario 1: 4 Clients, Starting 20 Seconds apart from each other
 
-# Part 4: Building Large Networks with BRITE and Installing Multimedia Clients
+## Scenario 2: Large Network Topology
+
+## Scenario 3: WiFi with Mobilidy Models
+
+## Scenario 4: Wireless Ad-Hoc Communication
+
+
 
 
 
