@@ -27,22 +27,22 @@ namespace dash
 namespace player
 {
 
-class NoLogic : public AdaptationLogic
+class SVCNoAdaptationLogic : public AdaptationLogic
 {
 public:
-  NoLogic(MultimediaPlayer* mPlayer) : AdaptationLogic (mPlayer)
+  SVCNoAdaptationLogic(MultimediaPlayer* mPlayer) : AdaptationLogic (mPlayer)
   {
     currentSegmentNumber = 0;
   }
 
   virtual std::string GetName() const
   {
-    return "dash::player::NoLogic";
+    return "dash::player::SVCNoAdaptationLogic";
   }
 
   static std::shared_ptr<AdaptationLogic> Create(MultimediaPlayer* mPlayer)
   {
-    return std::make_shared<NoLogic>(mPlayer);
+    return std::make_shared<SVCNoAdaptationLogic>(mPlayer);
   }
 
   virtual ISegmentURL*
@@ -60,14 +60,14 @@ protected:
   void orderRepresentationsByDepIds();
   unsigned int getNextNeededSegmentNumber(int layer);
 
-  static NoLogic _staticLogic;
+  static SVCNoAdaptationLogic _staticLogic;
   unsigned int currentSegmentNumber;
 
   std::map<int /*level*/, IRepresentation*> m_orderdByDepIdReps;
 
-  NoLogic()
+  SVCNoAdaptationLogic()
   {
-    ENSURE_ADAPTATION_LOGIC_REGISTERED(NoLogic);
+    ENSURE_ADAPTATION_LOGIC_REGISTERED(SVCNoAdaptationLogic);
   }
 
 

@@ -25,10 +25,10 @@ namespace dash
 namespace player
 {
 
-ENSURE_ADAPTATION_LOGIC_INITIALIZED(NoLogic)
+ENSURE_ADAPTATION_LOGIC_INITIALIZED(SVCNoAdaptationLogic)
 
 ISegmentURL*
-NoLogic::GetNextSegment(unsigned int *requested_segment_number, const dash::mpd::IRepresentation **usedRepresentation, bool *hasDownloadedAllSegments)
+SVCNoAdaptationLogic::GetNextSegment(unsigned int *requested_segment_number, const dash::mpd::IRepresentation **usedRepresentation, bool *hasDownloadedAllSegments)
 {
 
   unsigned int max_layer = m_orderdByDepIdReps.size ()-1;
@@ -77,7 +77,7 @@ NoLogic::GetNextSegment(unsigned int *requested_segment_number, const dash::mpd:
   return NULL;
 }
 
-bool NoLogic::hasMinBufferLevel(const dash::mpd::IRepresentation* rep)
+bool SVCNoAdaptationLogic::hasMinBufferLevel(const dash::mpd::IRepresentation* rep)
 {
   if(m_multimediaPlayer->GetBufferLevel(m_orderdByDepIdReps[0]->GetId()) > 0.0)
      return true;
@@ -85,13 +85,13 @@ bool NoLogic::hasMinBufferLevel(const dash::mpd::IRepresentation* rep)
   return false;
 }
 
-void NoLogic::SetAvailableRepresentations(std::map<std::string, IRepresentation*>* availableRepresentations)
+void SVCNoAdaptationLogic::SetAvailableRepresentations(std::map<std::string, IRepresentation*>* availableRepresentations)
 {
   AdaptationLogic::SetAvailableRepresentations (availableRepresentations);
   orderRepresentationsByDepIds();
 }
 
-unsigned int NoLogic::getNextNeededSegmentNumber(int layer)
+unsigned int SVCNoAdaptationLogic::getNextNeededSegmentNumber(int layer)
 {
   // check buffer
   if (m_multimediaPlayer->GetBufferLevel(m_orderdByDepIdReps[layer]->GetId()) == 0)
@@ -106,7 +106,7 @@ unsigned int NoLogic::getNextNeededSegmentNumber(int layer)
   }
 }
 
-void NoLogic::orderRepresentationsByDepIds()
+void SVCNoAdaptationLogic::orderRepresentationsByDepIds()
 {
   std::map<std::string/*RepId*/, IRepresentation*> reps = *m_availableRepresentations;
   std::map<std::string/*RepId*/, IRepresentation*> selectedReps;

@@ -344,21 +344,19 @@ Our Multimedia Consumers have plenty of options to be configured. First of all, 
  * ``AdaptationLogic`` 
  *  ``MpdFileToRequest``
 
-``MpdFileToRequest`` is, like the name suggests, the MPD file of the video to play. 
+``MpdFileToRequest`` is, like the name suggests, the MPD file of the video to play. For the purpose of having a quicker start-up, it is possible to use gzip'ed MPD files here, by specifying a file like this: ``mpdfilename.mpd.gz``(the file obviously needs to be available in the directory).
 ``AdaptationLogic``  depends heavily on the MPD file. If the MPD file contains SVC content, the following adaptation logics are available: 
 
- * ``adaptation-logic-svc-buffer-based``
- * ``adaptation-logic-svc-rate-based.cpp``
- * ``adaptation-no-logic``
+ * ``SVCBufferBasedAdaptationLogic``
+ * ``SVCRateBasedAdaptationLogic``
+ * ``SVCNoAdaptationLogic`` - requests all SVC representations, starting from the base layer, until the segment needs to be consumed
  
 For AVC:
 
- * ``adaptation-logic-always-lowest``
- * ``adaptation-logic-manual``
- * ``adaptation-logic-rate-based``
- * ``adaptation-logic-rate-and-buffer-based``
+ * ``adaptation-logic-always-lowest`` (default value) - use always the lowest representation available
+ * ``RateBasedAdaptationLogic``- the estimated throughput is the main deciding factor for the representation used
+ * ``adaptation-logic-rate-and-buffer-based`` - the clients local buffer and the estimated throughput will be used for determining the representation
 
-TODO: Describe Adaptation Logic behaviour
 
 
 Then we have several options that the clients can use for their "simulated screens":
@@ -370,15 +368,15 @@ Those 4 options are used to determine which representations from the MPD file ar
 Instead, you can request the 640x320 representation and upscale it to 1280x720 or request the 1280x720 representation and use it without scaling. For some scenarios it might even be necessary to disable upscaling too.
 
 
- * ``MaxBufferedSeconds``
- * ``StartUpDelay``
+ * ``MaxBufferedSeconds`` (default: 30)
+ * ``StartUpDelay``(default: 2.0)
 
 Those options are used to determine the maximum amount of buffered seconds. While on most computers, this number could be rather large, especially with mobile phones and tablets this number is restricted by the available memory. Common practice for those is around 30 seconds.
 The ``StartUpDelay`` is used for scenarios, where you want the client to buffer first, and start playing after a certain amount of time. This could beneficial for scenarios where you have a slow Internet connection, as it is better to buffer first, and then play. If set to 0, the player will start playing the video as soon as the first segment has been successfully downloaded.
 
  * ``StartRepresentationId``
 
-This is for testing purpose only, please set to ``auto``.
+Can take the following values: "lowest", "auto" (means: use adaptation logic) or a certain representation id. We recommend setting it to "auto" (default value).
 
 ## Multimedia Consumers and Tracers
 
@@ -386,6 +384,8 @@ This is for testing purpose only, please set to ``auto``.
 ------------------
 # Part 3: Building Large Networks and Installing Multimedia Clients
 BRITE
+
+
 
 
 
