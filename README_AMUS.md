@@ -1,4 +1,4 @@
-# Adaptive Multimedia Streaming Simulator  - A Tutorial
+# Adaptive Multimedia Streaming Framework for ndnSIM  - A Tutorial
 **Note:** This tutorial requires you to have a working installation of [amus-ndnSIM](http://github.com/ChristianKreuzberger/amus-ndnSIM). 
 
 Within this tutorial, we will try simple examples like file-transfers, up to building a large example with several multimedia streaming clients.
@@ -350,12 +350,13 @@ Our Multimedia Consumers have plenty of options to be configured. First of all, 
  * ``SVCBufferBasedAdaptationLogic``
  * ``SVCRateBasedAdaptationLogic``
  * ``SVCNoAdaptationLogic`` - requests all SVC representations, starting from the base layer, until the segment needs to be consumed
- 
+ * ``AlwaysLowestAdaptationLogic`` (default value) - use always the lowest representation available (warning: this might not work in all cases for SVC content)
+
 For AVC:
 
- * ``adaptation-logic-always-lowest`` (default value) - use always the lowest representation available
+ * ``AlwaysLowestAdaptationLogic`` (default value) - use always the lowest representation available
  * ``RateBasedAdaptationLogic``- the estimated throughput is the main deciding factor for the representation used
- * ``adaptation-logic-rate-and-buffer-based`` - the clients local buffer and the estimated throughput will be used for determining the representation
+ * ``RateAndBufferBasedAdaptationLogic`` - the clients local buffer and the estimated throughput will be used for determining the representation
 
 
 
@@ -374,16 +375,23 @@ Instead, you can request the 640x320 representation and upscale it to 1280x720 o
 Those options are used to determine the maximum amount of buffered seconds. While on most computers, this number could be rather large, especially with mobile phones and tablets this number is restricted by the available memory. Common practice for those is around 30 seconds.
 The ``StartUpDelay`` is used for scenarios, where you want the client to buffer first, and start playing after a certain amount of time. This could beneficial for scenarios where you have a slow Internet connection, as it is better to buffer first, and then play. If set to 0, the player will start playing the video as soon as the first segment has been successfully downloaded.
 
- * ``StartRepresentationId``
+ * ``StartRepresentationId`` (default: "auto")
 
-Can take the following values: "lowest", "auto" (means: use adaptation logic) or a certain representation id. We recommend setting it to "auto" (default value).
+Can take the following values: "lowest", "auto" (means: use adaptation logic) or a certain representation id. This attribute is for testing purpose, and we recommend using "auto".
 
 ## Multimedia Consumers and Tracers
 
 
 ------------------
-# Part 3: Building Large Networks and Installing Multimedia Clients
-BRITE
+
+# Part 3: Use Cases and Examples
+
+
+------------------
+
+
+# Part 4: Building Large Networks with BRITE and Installing Multimedia Clients
+
 
 
 

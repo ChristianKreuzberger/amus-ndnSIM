@@ -1,11 +1,11 @@
-amus-ndnSIM
+amus-ndnSIM -  Adaptive Multimedia Streaming Framework for ndnSIM
 ===========
 
 This is a custom version of ndnSIM 2.0, supporting Adaptive Multimedia Streaming and the BRITE extension.
 Please refer to the original [ndnSIM github repository](http://github.com/named-data/ndnSIM) for documentation about
 ndnSIM and ns-3.
 
-Adaptive Multimedia Streaming Simulator for NDN is trying to create a bridge between the multimedia and NDN community.
+Adaptive Multimedia Streaming Framework for ndnSIM is trying to create a bridge between the multimedia and NDN community.
 Therefore it is providing several scenarios and the source code for adaptive streaming with NDN, based on ndnSIM and
 libdash.
 

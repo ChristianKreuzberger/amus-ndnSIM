@@ -63,7 +63,7 @@ RateAndBufferBasedAdaptationLogic::GetNextSegment(unsigned int *requested_segmen
   for (auto& keyValue : *(this->m_availableRepresentations))
   {
     const IRepresentation* rep = keyValue.second;
-    std::cerr << "Rep=" << keyValue.first << " has bitrate " << rep->GetBandwidth() << std::endl;
+    // std::cerr << "Rep=" << keyValue.first << " has bitrate " << rep->GetBandwidth() << std::endl;
     if (rep->GetBandwidth() < last_download_speed*factor)
     {
       if (rep->GetBandwidth() > highest_bitrate)
