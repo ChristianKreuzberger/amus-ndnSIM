@@ -1,13 +1,13 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /**
- * Copyright (c) 2015 Christian Kreuzberger and Daniel Posch, Alpen-Adria-University 
+ * Copyright (c) 2015 Christian Kreuzberger and Daniel Posch, Alpen-Adria-University
  * Klagenfurt
  *
- * This file is part of amus-ndnSIM, based on ndnSIM. See AUTHORS for complete list of 
+ * This file is part of amus-ndnSIM, based on ndnSIM. See AUTHORS for complete list of
  * authors and contributors.
  *
- * amus-ndnSIM and ndnSIM are free software: you can redistribute it and/or modify it 
- * under the terms of the GNU General Public License as published by the Free Software 
+ * amus-ndnSIM and ndnSIM are free software: you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free Software
  * Foundation, either version 3 of the License, or (at your option) any later version.
  *
  * amus-ndnSIM is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
@@ -248,12 +248,12 @@ FileServer::ReturnPayloadData(shared_ptr<const Interest> interest, std::string& 
   fseek(fp, seqNo * m_maxPayloadSize, SEEK_SET);
 
   auto buffer = make_shared< ::ndn::Buffer>(m_maxPayloadSize);
-  size_t actualSize = fread(buffer->get(), sizeof(uint8_t), m_maxPayloadSize, fp);
+  //size_t actualSize = fread(buffer->get(), sizeof(uint8_t), m_maxPayloadSize, fp);
+  fread(buffer->get(), sizeof(uint8_t), m_maxPayloadSize, fp);
   fclose(fp);
 
   /*if (actualSize < m_maxPayloadSize)
     buffer->resize(actualSize+1);*/
-
 
   data->setContent(buffer);
 
