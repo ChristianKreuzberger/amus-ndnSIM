@@ -200,6 +200,28 @@ See documentation about FileConsumer for more details.
 We have now shown you simple examples for file transfers. It is now the time to compare the log output of those examples, by running ```ndn-file-simple-example2-tracers``` and ```ndn-file-simple-example3-enhanced```.
 Furthermore, feel free to play around with ```StartWindowSize```, from 0 to 100, and see how this impacts the performance.
 
+Here is the output from our examples:
+```bash
+~/ndnSIM/test-scenario$ ./waf --run ndn-file-simple-example2-tracers
+Waf: Entering directory `ndnSIM/test-scenario/build'
+Waf: Leaving directory `ndnSIM/test-scenario/build'
+'build' finished successfully (0.057s)
+Trace: File started downloading: 0 /myprefix/file1.img
+Trace: Manifest received: 40 /myprefix/file1.img File Size: 10485760
+Trace: File finished downloading: 307222 /myprefix/file1.img Download Speed: 273.047 Kilobit/s in 307222 ms
+Simulation Finished.
+~/ndnSIM/test-scenario$ ./waf --run ndn-file-simple-example3-enhanced
+Waf: Entering directory `ndnSIM/test-scenario/build'
+Waf: Leaving directory `ndnSIM/test-scenario/build'
+'build' finished successfully (0.057s)
+Trace: File started downloading: 0 /myprefix/file1.img
+Trace: Manifest received: 40 /myprefix/file1.img File Size: 10485760
+Trace: File finished downloading: 8723 /myprefix/file1.img Download Speed: 9616.65 Kilobit/s in 8723 ms
+Simulation Finished.
+```
+
+As you can see, FileConsumerCbr performs much better, and it is the recommended Consumer to use.
+
 
 ## Testing File Transfers with Real Data
 With FileConsumer and FileProducer we are transfering real data packets over the simulated network. For some scenarios it might be necessary to use the file transfered via the simulator. This improves the accuracy of the results. We added a method for writeing the received file to the storage with the following command:
