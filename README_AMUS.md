@@ -52,7 +52,7 @@ mkdir ~/somedata
 fallocate -l 10M ~/somedata/file1.img
 ```
 
-Then, create a .cpp file with the following content in your scenario subfolder (see examples/simple-file-transfer.cpp):
+Then, create a .cpp file with the following content in your scenario subfolder (see [examples/simple-file-transfer.cpp](examples/simple-file-transfer.cpp)):
 ```cplusplus
 #include "ns3/core-module.h"
 #include "ns3/network-module.h"
@@ -104,7 +104,7 @@ main(int argc, char* argv[])
 
   // Producer will reply to all requests starting with /prefix
   producerHelper.SetPrefix("/myprefix");
-  producerHelper.SetAttribute("ContentDirectory", StringValue("/home/ckreuz/somedata/"));
+  producerHelper.SetAttribute("ContentDirectory", StringValue("/home/someuser/somedata/"));
   producerHelper.Install(nodes.Get(0)); // install to some node from nodelist
 
   ndn::GlobalRoutingHelper ndnGlobalRoutingHelper;
