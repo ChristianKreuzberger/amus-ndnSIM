@@ -87,10 +87,10 @@ main(int argc, char* argv[])
   ndnGlobalRoutingHelper.AddOrigins("/myprefix", nodes.Get(0));
   ndn::GlobalRoutingHelper::CalculateRoutes();
 
-  Simulator::Stop(Seconds(60.0));
+  Simulator::Stop(Seconds(1200.0));
 
   ndn::DASHPlayerTracer::InstallAll("dash-output.txt");
-  CsTracer::InstallAll("cs-trace.txt", Seconds(1));
+  ndn::CsTracer::InstallAll("cs-trace.txt", Seconds(1));
 
   Simulator::Run();
   Simulator::Destroy();
