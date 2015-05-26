@@ -658,18 +658,7 @@ Brite config File: TODO
 ------------------
 
 # Part 4: Use Cases/Scenarios and Examples
-## Scenario 1: 4 Clients, Starting 20 Seconds apart from each other
-
-## Scenario 2: Large Network Topology
-
-## Scenario 3: WiFi with Mobilidy Models
-
-## Scenario 4: Wireless Ad-Hoc Communication
-
-
-
-
-
+Not ready yet...
 
 
 

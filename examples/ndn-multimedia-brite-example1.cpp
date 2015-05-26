@@ -187,13 +187,6 @@ main(int argc, char* argv[])
 
 
   Simulator::Stop(Seconds(1000.0));
-
-/*
-  ndn::L3RateTracer::Install(client, "rate-trace.txt", Seconds(1.0));
-  ndn::FileConsumerTracer::Install(client, "file-trace.txt");
-  ndn::FileConsumerLogTracer::Install(client, "file-log.txt");
-*/
-
   Simulator::Run();
   Simulator::Destroy();
 
