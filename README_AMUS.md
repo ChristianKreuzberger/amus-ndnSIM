@@ -435,13 +435,225 @@ AVC content will look similar, but will not have the SegmentDepIds filled at all
 See examples/ndn-multimedia-simple-avc-example2-tracer.cpp and See examples/ndn-multimedia-simple-svc-example2-tracer.cpp for the full sourcecode.
 
 ### Other Tracers
-For evaluation purposes most other tracers should also work, for instance, Content Store Tracer. Please note, that due to some limitations with ns-3/ndnSIM, the AppId of the MultimediaConsumer will change over time, therefore you need to filter the Node (NodeId), instead of AppId in all traces.
+For evaluation purposes most other tracers should also work, for instance, Content Store Tracer. Please note, that due to some limitations with ns-3/ndnSIM, the AppId of the MultimediaConsumer will change over time, therefore you need to filter the Node (```NodeId```), instead of ```AppId``` in all traces.
 
+See [examples/ndn-multimedia-simple-avc-example2-tracers.cpp](examples/ndn-multimedia-simple-avc-example2-tracers.cpp) and [examples/ndn-multimedia-simple-svc-example2-tracers.cpp](examples/ndn-multimedia-simple-svc-example2-tracers.cpp) for the full example.
 
 ------------------
 
 # Part 3: Building Large Networks with BRITE and Installing Multimedia Clients
+## Basics
+The [BRITE Network Generator](http://www.cs.bu.edu/brite/) is an open source project, which can be used by ndnSIM/ns-3. We have set up a wrapper class (see [helper/ndn-brite-topology-helper.cpp](helper/ndn-brite-topology-helper.cpp) and  [helper/ndn-brite-topology-helper.hpp](helper/ndn-brite-topology-helper.hpp)). All you need is a brite config file.
 
+
+
+```cplusplus
+// include the header file
+#include "ns3/ndnSIM/helper/ndn-brite-topology-helper.hpp"
+// ...
+
+  // Create Brite Topology Helper
+  ndn::NDNBriteTopologyHelper bth ("brite.conf");
+  bth.AssignStreams (3);
+  // tell the topology helper to build the topology
+  bth.BuildBriteTopology ();
+
+// ...
+
+```
+
+You can find the full example later. 
+
+## Random Network
+Use the ``--RngRun=`` option of [ns-3 Random Variables](https://www.nsnam.org/docs/manual/html/random-variables.html#id1) to generate different instances of the random network.
+
+Example:
+```bash
+./waf --run "ndn-multimedia-brite-example1 --RngRun=0" --vis
+./waf --run "ndn-multimedia-brite-example1 --RngRun=1" --vis
+./waf --run "ndn-multimedia-brite-example1 --RngRun=2" --vis
+```
+
+
+## Installing the NDN Stack, Multimedia Clients, Routing, ...
+First, we include the ndn brite helper and configure the application to have a parameter for the brite config file:
+
+```cplusplus
+#include "ns3/ndnSIM/helper/ndn-brite-topology-helper.hpp"
+```
+
+```cplusplus
+int
+main(int argc, char* argv[])
+{
+  std::string confFile = "brite.conf";
+
+  CommandLine cmd;
+  cmd.AddValue ("briteConfFile", "BRITE configuration file", confFile);
+  cmd.Parse(argc, argv);
+```
+
+Next, we create an instance of the NDN stack and build the topology:
+
+```cplusplus
+  // Create NDN Stack
+  ndn::StackHelper ndnHelper;
+
+  // Create Brite Topology Helper
+  ndn::NDNBriteTopologyHelper bth (confFile);
+  bth.AssignStreams (3);
+  // tell the topology helper to build the topology 
+  bth.BuildBriteTopology ();
+```
+
+Now we go through that topology and create a ```NodeContainer``` for servers, clients and routers, so we can distingiush the configuration of those nodes.
+
+```cplusplus
+  // Separate clients, servers and routers
+  NodeContainer client;
+  NodeContainer server;
+  NodeContainer router;
+```
+
+Iterate over all AS (Autonomous System) and get all non leaf nodes
+```cplusplus
+  for (uint32_t i = 0; i < bth.GetNAs(); i++)
+  {
+    std::cout << "Number of nodes for AS: " << bth.GetNNodesForAs(i) << ", non leaf nodes: " << bth.GetNNonLeafNodesForAs(i) << std::endl;
+    for(int node=0; node < bth.GetNNonLeafNodesForAs(i); node++)
+    {
+      std::cout << "Node " << node << " has " << bth.GetNonLeafNodeForAs(i,node)->GetNDevices() << " devices " << std::endl;
+      //container.Add (briteHelper->GetNodeForAs (ASnumber,node));
+      router.Add(bth.GetNonLeafNodeForAs(i,node));
+    }
+  }
+```
+
+Iterate over all AS and get all leaf nodes
+```cplusplus
+  uint32_t sumLeafNodes = 0;
+  for (uint32_t i = 0; i < bth.GetNAs(); i++)
+  {
+    uint32_t numLeafNodes = bth.GetNLeafNodesForAs(i);
+
+    std::cout << "AS " << i << " has " << numLeafNodes << "leaf nodes! " << std::endl;
+
+    for (uint32_t j= 0; j < numLeafNodes; j++)
+    {
+      if (decideIfServer(i,j)) // some decision, can be random
+      {
+        server.Add(bth.GetLeafNodeForAs(i,j));
+      }
+      else
+      {
+        client.Add(bth.GetLeafNodeForAs(i,j));
+      }
+    }
+
+    sumLeafNodes+= numLeafNodes;
+  }
+
+  std::cout << "Total Number of leaf nodes: " << sumLeafNodes << std::endl;
+
+```
+Where ``decideIfServer(asNumber, leafNumber)`` needs to have some logic to decide whether this node should be a client or a server. Generally, a random strategy works well, you just need to make sure you know how many servers and clients you want to have (in relation).
+
+
+Now let's isntall the ndn stack and content stores:
+```cplusplus
+  // clients do not really need a large content store, but it could be beneficial to give them some
+  ndnHelper.SetOldContentStore ("ns3::ndn::cs::Stats::Lru","MaxSize", "100");
+  ndnHelper.Install (client);
+
+  // servers do not need a content store at all, they have an app to do that
+  ndnHelper.SetOldContentStore ("ns3::ndn::cs::Stats::Lru","MaxSize", "1");
+  ndnHelper.Install (server);
+
+  // what really needs a content store is the routers, which we don't have many
+  ndnHelper.setCsSize(10000);
+  ndnHelper.Install(router);
+```
+and choose a forwarding strategy
+```cplusplus
+  // Choosing forwarding strategy
+  ndn::StrategyChoiceHelper::InstallAll("/myprefix", "/localhost/nfd/strategy/best-route");
+```
+
+Install the GlobalRoutingHelper
+```cplusplus
+  // Installing global routing interface on all nodes
+  ndn::GlobalRoutingHelper ndnGlobalRoutingHelper;
+  ndnGlobalRoutingHelper.InstallAll();
+```
+
+Install the Multimedia Consumer (in this case an SVC consumer)
+```cplusplus
+  // Installing multimedia consumer
+  ns3::ndn::AppHelper consumerHelper("ns3::ndn::FileConsumerCbr::MultimediaConsumer");
+  consumerHelper.SetAttribute("AllowUpscale", BooleanValue(true));
+  consumerHelper.SetAttribute("AllowDownscale", BooleanValue(false));
+  consumerHelper.SetAttribute("ScreenWidth", UintegerValue(1920));
+  consumerHelper.SetAttribute("ScreenHeight", UintegerValue(1080));
+  consumerHelper.SetAttribute("StartRepresentationId", StringValue("auto"));
+  consumerHelper.SetAttribute("MaxBufferedSeconds", UintegerValue(30));
+  consumerHelper.SetAttribute("StartUpDelay", StringValue("0.1"));
+
+  consumerHelper.SetAttribute("AdaptationLogic", StringValue("dash::player::SVCBufferBasedAdaptationLogic"));
+  consumerHelper.SetAttribute("MpdFileToRequest", StringValue(std::string("/myprefix/SVC/BBB/BBB-III.mpd" )));
+```
+
+Start clients / install logic
+```cplusplus
+  // Randomize Client File Selection
+  Ptr<UniformRandomVariable> r = CreateObject<UniformRandomVariable>();
+  for(int i=0; i<client.size (); i++)
+  {
+    // TODO: Make some logic to decide which file to request
+    consumerHelper.SetAttribute("MpdFileToRequest", StringValue(std::string("/myprefix/SVC/BBB/BBB-III.mpd" )));
+    ApplicationContainer consumer = consumerHelper.Install (client[i]);
+
+    std::cout << "Client " << i << " is Node " << client[i]->GetId() << std::endl;
+
+    // Start and stop the consumer
+    consumer.Start (Seconds(1.0)); // TODO: Start at randomized time
+    consumer.Stop (Seconds(600.0));
+  }
+```
+
+Install the servers
+```cplusplus
+   // Producer
+  ndn::AppHelper producerHelper("ns3::ndn::FileServer");
+
+  // Producer will reply to all requests starting with /myprefix
+  producerHelper.SetPrefix("/myprefix");
+  producerHelper.SetAttribute("ContentDirectory", StringValue("/home/someuser/multimediaData/"));
+  producerHelper.Install(server); // install to servers
+
+  ndnGlobalRoutingHelper.AddOrigins("/myprefix", server);
+```
+
+Install Routing:
+```cplusplus
+  // Calculate and install FIBs
+  ndn::GlobalRoutingHelper::CalculateAllPossibleRoutes();
+```
+
+Run the Simulation
+```cplusplus
+  Simulator::Stop(Seconds(1000.0));
+  Simulator::Run();
+  Simulator::Destroy();
+
+  std::cout << "Simulation ended" << std::endl;
+
+  return 0;
+}
+```
+
+
+Full example here: [examples/ndn-multimedia-brite-example1.cpp](examples/ndn-multimedia-brite-example1.cpp).
+Brite config File: TODO
 
 ------------------
 

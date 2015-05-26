@@ -23,6 +23,7 @@
 #include "ns3/point-to-point-module.h"
 #include "ns3/ndnSIM-module.h"
 #include "ns3/ndnSIM/apps/ndn-app.hpp"
+#include "ns3/ndnSIM/utils/tracers/ndn-dashplayer-tracer.hpp"
 
 namespace ns3 {
 
@@ -55,6 +56,9 @@ main(int argc, char* argv[])
   ndnHelper.InstallAll();
 
   // Choosing forwarding strategy
+  ndn::StrategyChoiceHelper::InstallAll("/myprefix", "/localhost/nfd/strategy/best-route");
+
+  // Installing Multimedia Consumer
   ns3::ndn::AppHelper consumerHelper("ns3::ndn::FileConsumerCbr::MultimediaConsumer");
   consumerHelper.SetAttribute("AllowUpscale", BooleanValue(true));
   consumerHelper.SetAttribute("AllowDownscale", BooleanValue(false));
@@ -64,8 +68,8 @@ main(int argc, char* argv[])
   consumerHelper.SetAttribute("MaxBufferedSeconds", UintegerValue(30));
   consumerHelper.SetAttribute("StartUpDelay", StringValue("0.1"));
 
-  consumerHelper.SetAttribute("AdaptationLogic", StringValue("dash::player::SVCBufferBasedAdaptationLogic"));
-  consumerHelper.SetAttribute("MpdFileToRequest", StringValue(std::string("/myprefix/SVC/BBB/BBB-III.mpd" )));
+  consumerHelper.SetAttribute("AdaptationLogic", StringValue("dash::player::RateAndBufferBasedAdaptationLogic"));
+  consumerHelper.SetAttribute("MpdFileToRequest", StringValue(std::string("/myprefix/AVC/BBB/BBB-2s.mpd" )));
 
   ApplicationContainer app1 = consumerHelper.Install (nodes.Get(2));
 
@@ -83,7 +87,10 @@ main(int argc, char* argv[])
   ndnGlobalRoutingHelper.AddOrigins("/myprefix", nodes.Get(0));
   ndn::GlobalRoutingHelper::CalculateRoutes();
 
-  Simulator::Stop(Seconds(600.0));
+  Simulator::Stop(Seconds(60.0));
+
+  ndn::DASHPlayerTracer::InstallAll("dash-output.txt");
+  CsTracer::InstallAll("cs-trace.txt", Seconds(1));
 
   Simulator::Run();
   Simulator::Destroy();
@@ -100,5 +107,6 @@ main(int argc, char* argv[])
 {
   return ns3::main(argc, argv);
 }
+
 
 

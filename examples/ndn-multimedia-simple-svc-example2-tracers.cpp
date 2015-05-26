@@ -23,6 +23,7 @@
 #include "ns3/point-to-point-module.h"
 #include "ns3/ndnSIM-module.h"
 #include "ns3/ndnSIM/apps/ndn-app.hpp"
+#include "ns3/ndnSIM/utils/tracers/ndn-dashplayer-tracer.hpp"
 
 namespace ns3 {
 
@@ -55,6 +56,9 @@ main(int argc, char* argv[])
   ndnHelper.InstallAll();
 
   // Choosing forwarding strategy
+  ndn::StrategyChoiceHelper::InstallAll("/myprefix", "/localhost/nfd/strategy/best-route");
+
+  // Installing multimedia consumer
   ns3::ndn::AppHelper consumerHelper("ns3::ndn::FileConsumerCbr::MultimediaConsumer");
   consumerHelper.SetAttribute("AllowUpscale", BooleanValue(true));
   consumerHelper.SetAttribute("AllowDownscale", BooleanValue(false));
@@ -84,6 +88,9 @@ main(int argc, char* argv[])
   ndn::GlobalRoutingHelper::CalculateRoutes();
 
   Simulator::Stop(Seconds(600.0));
+
+  ndn::DASHPlayerTracer::InstallAll("dash-output.txt");
+  CsTracer::InstallAll("cs-trace.txt", Seconds(1));
 
   Simulator::Run();
   Simulator::Destroy();
