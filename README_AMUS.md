@@ -52,7 +52,7 @@ mkdir ~/somedata
 fallocate -l 10M ~/somedata/file1.img
 ```
 
-Then, create a .cpp file with the following content in your scenario subfolder (see [examples/simple-file-transfer.cpp](examples/simple-file-transfer.cpp)):
+Then, create a .cpp file with the following content in your scenario subfolder (see [examples/ndn-file-simple-example1.cpp](examples/ndn-file-simple-example1.cpp)):
 ```cplusplus
 #include "ns3/core-module.h"
 #include "ns3/network-module.h"
@@ -177,7 +177,7 @@ Next, we need to make sure to connect them as trace sources:
                                MakeCallback(&FileDownloadStartedTrace));
 ```
 
-You can find the whole sourcecode under examples/ndn-file-simple-example2-tracers.cpp.
+You can find the whole sourcecode under [examples/ndn-file-simple-example2-tracers.cpp](examples/ndn-file-simple-example2-tracers.cpp).
 
 
 ## Enhanced File Consumer
@@ -191,8 +191,14 @@ This can be achieved by the following code:
   consumerHelper.SetAttribute("FileToRequest", StringValue("/myprefix/file1.img"));
   consumerHelper.SetAttribute("StartWindowSize", StringValue("60"));
 ```
+Full Example: [examples/ndn-file-simple-example3-enhanced.cpp](examples/ndn-file-simple-example3-enhanced.cpp).
 
 See documentation about FileConsumer for more details.
+
+
+## Comparison
+We have now shown you simple examples for file transfers. It is now the time to compare the log output of those examples, by running ```ndn-file-simple-example2-tracers``` and ```ndn-file-simple-example3-enhanced```.
+Furthermore, feel free to play around with ```StartWindowSize```, from 0 to 100, and see how this impacts the performance.
 
 
 ## Testing File Transfers with Real Data

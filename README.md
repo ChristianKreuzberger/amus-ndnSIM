@@ -11,7 +11,7 @@ libdash.
 
 ---------------------------------------------
 
-## Installing Procedure:
+## Installing Procedure
 
 * Install Pre-Requesits for ndn-cxx, ns-3, BRITE
 * Install Pre-Requesits for libdash
@@ -136,7 +136,7 @@ These are standard-paths as created by the makefile for libdash.
 ---------------------------------------------
 
 ## Tutorial
-Please take a look at [this README](README_amus.md), and the scenario template below.
+Please take a look at [this README](README_AMUS.md), and the scenario template below.
 
 ## Scenario Template
 In addition, we also provide a scenario-template. All you need to do is download and install amus-ndnSIM once, and then
