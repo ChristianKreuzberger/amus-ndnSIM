@@ -227,9 +227,10 @@ For multimedia streaming, we use the concept of Dynamic Adaptive Streaming over 
 Fortunately, we already have a FileServer, and this is all we need for hosting content (except for the content, obviously). We can basically use any MPEG-DASH compatible video stream, as long as the Media Presentation Description (MPD) file can be parsed by libdash (Note: we only support BASIC MPD structures, with only one period, and no wildcards).
 
 ## Getting DASH Content for Testing
-While there are plenty of programs out there to create MPEG-DASH streams, reproducability is a key problem. Therefore we recommend using existing datasets, and we refer to the following two datasets for MPEG-DASH Videos:
-* [DASH/AVC Dataset](http://www-itec.uni-klu.ac.at/dash/?page_id=207) by Lederer et al. [[PDF]](http://www-itec.uni-klu.ac.at/bib/files/p89-lederer.pdf) (we recommend using the 2012 version)
-* [DASH/SVC Dataset](http://concert.itec.aau.at/SVCDataset/) by Kreuzberger et al. [[PDF]](http://www-itec.uni-klu.ac.at/bib/files/dash_svc_dataset_v1.05.pdf)
+While there are plenty of programs out there to create MPEG-DASH streams, reproducability of demos and simulations is a key problem. Therefore we recommend using existing datasets, and we refer to the following two datasets for MPEG-DASH Videos:
+
+* [DASH/AVC Dataset](http://www-itec.uni-klu.ac.at/dash/?page_id=207) by Lederer et al. [[PDF]](http://www-itec.uni-klu.ac.at/bib/files/p89-lederer.pdf) [[Bib]](http://www-itec.uni-klu.ac.at/bib/index.php?key=Mueller2012&bib=itec.bib) [[Website]](http://www-itec.uni-klu.ac.at/dash/?page_id=207) (we recommend using the older 2012 version for testing purpose)
+* [DASH/SVC Dataset](http://concert.itec.aau.at/SVCDataset/) by Kreuzberger et al. [[PDF]](http://www-itec.uni-klu.ac.at/bib/files/dash_svc_dataset_v1.05.pdf) [[Bib]](http://www-itec.uni-klu.ac.at/bib/index.php?key=Kreuzberger2015a&bib=itec.bib) [[Website]](http://concert.itec.aau.at/SVCDataset/)
 
 In the following, we will provide an example for multimedia streaming with DASH/AVC and DASH/SVC, based on those two datasets. We selected the Big Buck Bunny movie to achieve compareable results.
 
@@ -319,7 +320,7 @@ Our multimedia consumers are built on top of the FileConsumers, therefore it is 
   ApplicationContainer app1 = consumerHelper.Install (nodes.Get(2));
 ```
 
-See examples/ndn-multimedia-simple-avc-example1.cpp for the full example.
+See [examples/ndn-multimedia-simple-avc-example1.cpp](examples/ndn-multimedia-simple-avc-example1.cpp) for the full example.
 
 ### SVC Content
 This is very similar to the AVC case, you just need to specify a different adaptation logic (and the correct MPD file):
@@ -341,7 +342,7 @@ This is very similar to the AVC case, you just need to specify a different adapt
 ```
 
 
-See examples/ndn-multimedia-simple-svc-example1.cpp for the full example.
+See [examples/ndn-multimedia-simple-svc-example1.cpp](examples/ndn-multimedia-simple-svc-example1.cpp) for the full example.
 
 
 ## Multimedia Consumers Options
