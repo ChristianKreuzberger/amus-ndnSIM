@@ -1,13 +1,13 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /**
- * Copyright (c) 2015 Christian Kreuzberger and Daniel Posch, Alpen-Adria-University 
+ * Copyright (c) 2015 Christian Kreuzberger and Daniel Posch, Alpen-Adria-University
  * Klagenfurt
  *
- * This file is part of amus-ndnSIM, based on ndnSIM. See AUTHORS for complete list of 
+ * This file is part of amus-ndnSIM, based on ndnSIM. See AUTHORS for complete list of
  * authors and contributors.
  *
- * amus-ndnSIM and ndnSIM are free software: you can redistribute it and/or modify it 
- * under the terms of the GNU General Public License as published by the Free Software 
+ * amus-ndnSIM and ndnSIM are free software: you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free Software
  * Foundation, either version 3 of the License, or (at your option) any later version.
  *
  * amus-ndnSIM is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
@@ -27,6 +27,15 @@
 #define BUFFER_MIN_SIZE 16 // in seconds
 #define BUFFER_ALPHA 8 // in seconds
 
+#define BUFFER_MIN_SIZE_CONSERVATIVE 16 // in seconds
+#define BUFFER_ALPHA_CONSERVATIVE 8 // in seconds
+
+#define BUFFER_MIN_SIZE_AGGRESSIVE 8 // in seconds
+#define BUFFER_ALPHA_AGGRESSIVE 2 // in seconds
+
+#define BUFFER_MIN_SIZE_NORMAL 8 // in seconds
+#define BUFFER_ALPHA_NORMAL 4 // in seconds
+
 namespace dash
 {
 namespace player
@@ -38,6 +47,12 @@ public:
   {
     alpha = BUFFER_ALPHA;
     gamma = BUFFER_MIN_SIZE;
+  }
+
+  SVCBufferBasedAdaptationLogic(MultimediaPlayer* mPlayer, double buffer_alpha, double buffer_min_size) : AdaptationLogic (mPlayer)
+  {
+    alpha = buffer_alpha;
+    gamma = buffer_min_size;
   }
 
   virtual std::string GetName() const
@@ -88,6 +103,79 @@ protected:
   AdaptationPhase lastPhase;
   AdaptationPhase allowedPhase;
 };
+
+
+class SVCBufferBasedAdaptationLogicAggressive : SVCBufferBasedAdaptationLogic
+{
+  public:
+  SVCBufferBasedAdaptationLogicAggressive(MultimediaPlayer* mPlayer)
+      : SVCBufferBasedAdaptationLogic (mPlayer, BUFFER_ALPHA_AGGRESSIVE, BUFFER_MIN_SIZE_AGGRESSIVE)
+      {
+      }
+
+  virtual std::string GetName() const
+  {
+    return "dash::player::SVCBufferBasedAdaptationLogicAggressive";
+  }
+
+  protected:
+  static SVCBufferBasedAdaptationLogicAggressive _staticLogic;
+
+  SVCBufferBasedAdaptationLogicAggressive()
+  {
+    ENSURE_ADAPTATION_LOGIC_REGISTERED(SVCBufferBasedAdaptationLogicAggressive);
+  }
+
+};
+
+
+class SVCBufferBasedAdaptationLogicConservative : SVCBufferBasedAdaptationLogic
+{
+  public:
+  SVCBufferBasedAdaptationLogicConservative(MultimediaPlayer* mPlayer)
+      : SVCBufferBasedAdaptationLogic (mPlayer, BUFFER_ALPHA_CONSERVATIVE, BUFFER_MIN_SIZE_CONSERVATIVE)
+      {
+      }
+
+
+  virtual std::string GetName() const
+  {
+    return "dash::player::SVCBufferBasedAdaptationLogicConservative";
+  }
+
+  protected:
+  static SVCBufferBasedAdaptationLogicConservative _staticLogic;
+
+  SVCBufferBasedAdaptationLogicConservative()
+  {
+    ENSURE_ADAPTATION_LOGIC_REGISTERED(SVCBufferBasedAdaptationLogicConservative);
+  }
+};
+
+
+
+class SVCBufferBasedAdaptationLogicNormal : SVCBufferBasedAdaptationLogic
+{
+  public:
+  SVCBufferBasedAdaptationLogicNormal(MultimediaPlayer* mPlayer)
+      : SVCBufferBasedAdaptationLogic (mPlayer, BUFFER_ALPHA_NORMAL, BUFFER_MIN_SIZE_NORMAL)
+      {
+      }
+
+  virtual std::string GetName() const
+  {
+    return "dash::player::SVCBufferBasedAdaptationLogicNormal";
+  }
+
+  protected:
+  static SVCBufferBasedAdaptationLogicNormal _staticLogic;
+
+  SVCBufferBasedAdaptationLogicNormal()
+  {
+    ENSURE_ADAPTATION_LOGIC_REGISTERED(SVCBufferBasedAdaptationLogicNormal);
+  }
+};
+
 }
 }
 #endif // ADAPTATIONLOGICSVCBUFFERBASED_HPP

@@ -1,13 +1,13 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /**
- * Copyright (c) 2015 Christian Kreuzberger and Daniel Posch, Alpen-Adria-University 
+ * Copyright (c) 2015 Christian Kreuzberger and Daniel Posch, Alpen-Adria-University
  * Klagenfurt
  *
- * This file is part of amus-ndnSIM, based on ndnSIM. See AUTHORS for complete list of 
+ * This file is part of amus-ndnSIM, based on ndnSIM. See AUTHORS for complete list of
  * authors and contributors.
  *
- * amus-ndnSIM and ndnSIM are free software: you can redistribute it and/or modify it 
- * under the terms of the GNU General Public License as published by the Free Software 
+ * amus-ndnSIM and ndnSIM are free software: you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free Software
  * Foundation, either version 3 of the License, or (at your option) any later version.
  *
  * amus-ndnSIM is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
@@ -28,6 +28,10 @@ namespace player
 {
 
 ENSURE_ADAPTATION_LOGIC_INITIALIZED(SVCBufferBasedAdaptationLogic)
+ENSURE_ADAPTATION_LOGIC_INITIALIZED(SVCBufferBasedAdaptationLogicConservative)
+ENSURE_ADAPTATION_LOGIC_INITIALIZED(SVCBufferBasedAdaptationLogicAggressive)
+ENSURE_ADAPTATION_LOGIC_INITIALIZED(SVCBufferBasedAdaptationLogicNormal)
+
 
 ISegmentURL*
 SVCBufferBasedAdaptationLogic::GetNextSegment(unsigned int* requested_segment_number, const dash::mpd::IRepresentation** usedRepresentation, bool *hasDownloadedAllSegments)
@@ -37,6 +41,7 @@ SVCBufferBasedAdaptationLogic::GetNextSegment(unsigned int* requested_segment_nu
   unsigned int i_curr = m_orderdByDepIdReps.size ()-1;
   unsigned int next_segment_number = -1;
 
+  // find the "best" layer, that is CURRENTLY buffered
   while(m_multimediaPlayer->GetBufferLevel(m_orderdByDepIdReps[i_curr]->GetId()) == 0.0 && i_curr > 0)
   {
     i_curr--;
