@@ -40,29 +40,13 @@ namespace dash
 {
 namespace player
 {
-class SVCBufferBasedAdaptationLogic : public AdaptationLogic
+class AbstractSVCBufferBasedAdaptationLogic : public AdaptationLogic
 {
 public:
-  SVCBufferBasedAdaptationLogic(MultimediaPlayer* mPlayer) : AdaptationLogic (mPlayer)
-  {
-    alpha = BUFFER_ALPHA;
-    gamma = BUFFER_MIN_SIZE;
-  }
-
-  SVCBufferBasedAdaptationLogic(MultimediaPlayer* mPlayer, double buffer_alpha, double buffer_min_size) : AdaptationLogic (mPlayer)
+  AbstractSVCBufferBasedAdaptationLogic(MultimediaPlayer* mPlayer, double buffer_alpha, double buffer_min_size) : AdaptationLogic (mPlayer)
   {
     alpha = buffer_alpha;
     gamma = buffer_min_size;
-  }
-
-  virtual std::string GetName() const
-  {
-    return "dash::player::SVCBufferBasedAdaptationLogic";
-  }
-
-  static std::shared_ptr<AdaptationLogic> Create(MultimediaPlayer* mPlayer)
-  {
-    return std::make_shared<SVCBufferBasedAdaptationLogic>(mPlayer);
   }
 
   virtual void SetAvailableRepresentations(std::map<std::string, IRepresentation*>* availableRepresentations);
@@ -74,17 +58,13 @@ public:
 
 
 protected:
+  AbstractSVCBufferBasedAdaptationLogic()
+  {
+  }
 
   void orderRepresentationsByDepIds();
   unsigned int desired_buffer_size(int i, int i_curr);
   unsigned int getNextNeededSegmentNumber(int layer);
-
-  static SVCBufferBasedAdaptationLogic _staticLogic;
-
-  SVCBufferBasedAdaptationLogic()
-  {
-    ENSURE_ADAPTATION_LOGIC_REGISTERED(SVCBufferBasedAdaptationLogic);
-  }
 
   std::map<int /*level*/, IRepresentation*> m_orderdByDepIdReps;
 
@@ -105,17 +85,17 @@ protected:
 };
 
 
-class SVCBufferBasedAdaptationLogicAggressive : SVCBufferBasedAdaptationLogic
+class SVCBufferBasedAdaptationLogicAggressive : AbstractSVCBufferBasedAdaptationLogic
 {
   public:
-  SVCBufferBasedAdaptationLogicAggressive(MultimediaPlayer* mPlayer)
-      : SVCBufferBasedAdaptationLogic (mPlayer, BUFFER_ALPHA_AGGRESSIVE, BUFFER_MIN_SIZE_AGGRESSIVE)
-      {
-      }
-
   virtual std::string GetName() const
   {
     return "dash::player::SVCBufferBasedAdaptationLogicAggressive";
+  }
+
+  static std::shared_ptr<AdaptationLogic> Create(MultimediaPlayer* mPlayer)
+  {
+    return std::make_shared<AbstractSVCBufferBasedAdaptationLogic>(mPlayer, BUFFER_ALPHA_AGGRESSIVE, BUFFER_MIN_SIZE_AGGRESSIVE);
   }
 
   protected:
@@ -129,18 +109,18 @@ class SVCBufferBasedAdaptationLogicAggressive : SVCBufferBasedAdaptationLogic
 };
 
 
-class SVCBufferBasedAdaptationLogicConservative : SVCBufferBasedAdaptationLogic
+
+class SVCBufferBasedAdaptationLogicConservative : AbstractSVCBufferBasedAdaptationLogic
 {
   public:
-  SVCBufferBasedAdaptationLogicConservative(MultimediaPlayer* mPlayer)
-      : SVCBufferBasedAdaptationLogic (mPlayer, BUFFER_ALPHA_CONSERVATIVE, BUFFER_MIN_SIZE_CONSERVATIVE)
-      {
-      }
-
-
   virtual std::string GetName() const
   {
-    return "dash::player::SVCBufferBasedAdaptationLogicConservative";
+    return "dash::player::SVCBufferBasedAdaptationLogic";
+  }
+
+  static std::shared_ptr<AdaptationLogic> Create(MultimediaPlayer* mPlayer)
+  {
+    return std::make_shared<AbstractSVCBufferBasedAdaptationLogic>(mPlayer, BUFFER_ALPHA_CONSERVATIVE, BUFFER_MIN_SIZE_CONSERVATIVE);
   }
 
   protected:
@@ -154,17 +134,17 @@ class SVCBufferBasedAdaptationLogicConservative : SVCBufferBasedAdaptationLogic
 
 
 
-class SVCBufferBasedAdaptationLogicNormal : SVCBufferBasedAdaptationLogic
+class SVCBufferBasedAdaptationLogicNormal : AbstractSVCBufferBasedAdaptationLogic
 {
   public:
-  SVCBufferBasedAdaptationLogicNormal(MultimediaPlayer* mPlayer)
-      : SVCBufferBasedAdaptationLogic (mPlayer, BUFFER_ALPHA_NORMAL, BUFFER_MIN_SIZE_NORMAL)
-      {
-      }
-
   virtual std::string GetName() const
   {
     return "dash::player::SVCBufferBasedAdaptationLogicNormal";
+  }
+
+  static std::shared_ptr<AdaptationLogic> Create(MultimediaPlayer* mPlayer)
+  {
+    return std::make_shared<AbstractSVCBufferBasedAdaptationLogic>(mPlayer, BUFFER_ALPHA_NORMAL, BUFFER_MIN_SIZE_NORMAL);
   }
 
   protected:
@@ -175,6 +155,7 @@ class SVCBufferBasedAdaptationLogicNormal : SVCBufferBasedAdaptationLogic
     ENSURE_ADAPTATION_LOGIC_REGISTERED(SVCBufferBasedAdaptationLogicNormal);
   }
 };
+
 
 }
 }

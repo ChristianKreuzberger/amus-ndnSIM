@@ -27,11 +27,9 @@ namespace dash
 namespace player
 {
 
-ENSURE_ADAPTATION_LOGIC_INITIALIZED(SVCBufferBasedAdaptationLogic)
-
 
 ISegmentURL*
-SVCBufferBasedAdaptationLogic::GetNextSegment(unsigned int* requested_segment_number, const dash::mpd::IRepresentation** usedRepresentation, bool *hasDownloadedAllSegments)
+AbstractSVCBufferBasedAdaptationLogic::GetNextSegment(unsigned int* requested_segment_number, const dash::mpd::IRepresentation** usedRepresentation, bool *hasDownloadedAllSegments)
 {
   unsigned int i = 0;
   // set i_curr to the maximum allowed level
@@ -116,7 +114,7 @@ SVCBufferBasedAdaptationLogic::GetNextSegment(unsigned int* requested_segment_nu
 }
 
 void
-SVCBufferBasedAdaptationLogic::SetAvailableRepresentations(std::map<std::string, IRepresentation*>* availableRepresentations)
+AbstractSVCBufferBasedAdaptationLogic::SetAvailableRepresentations(std::map<std::string, IRepresentation*>* availableRepresentations)
 {
   AdaptationLogic::SetAvailableRepresentations (availableRepresentations);
   orderRepresentationsByDepIds();
@@ -127,9 +125,9 @@ SVCBufferBasedAdaptationLogic::SetAvailableRepresentations(std::map<std::string,
 }
 
 //this functions classifies reps into layers depending on the DepIds.
-void SVCBufferBasedAdaptationLogic::orderRepresentationsByDepIds()
+void AbstractSVCBufferBasedAdaptationLogic::orderRepresentationsByDepIds()
 {
-  //fprintf(stderr, "SVCBufferBasedAdaptationLogic::orderRepresentationsByDepIds()\n");
+  //fprintf(stderr, "AbstractSVCBufferBasedAdaptationLogic::orderRepresentationsByDepIds()\n");
 
   std::map<std::string/*RepId*/, IRepresentation*> reps = *m_availableRepresentations;
   std::map<std::string/*RepId*/, IRepresentation*> selectedReps;
@@ -168,12 +166,12 @@ void SVCBufferBasedAdaptationLogic::orderRepresentationsByDepIds()
   //  fprintf(stderr, "layer[%d]=%s\n",it->first, it->second->GetId().c_str());
 }
 
-unsigned int SVCBufferBasedAdaptationLogic::desired_buffer_size(int i, int i_curr)
+unsigned int AbstractSVCBufferBasedAdaptationLogic::desired_buffer_size(int i, int i_curr)
 {
   return gamma + (int)std::ceil((i_curr - i) * alpha);
 }
 
-unsigned int SVCBufferBasedAdaptationLogic::getNextNeededSegmentNumber(int layer)
+unsigned int AbstractSVCBufferBasedAdaptationLogic::getNextNeededSegmentNumber(int layer)
 {
   // check buffer
   if (m_multimediaPlayer->GetBufferLevel(m_orderdByDepIdReps[layer]->GetId()) == 0)
@@ -200,7 +198,7 @@ unsigned int SVCBufferBasedAdaptationLogic::getNextNeededSegmentNumber(int layer
   }
 }
 
-bool SVCBufferBasedAdaptationLogic::hasMinBufferLevel(const dash::mpd::IRepresentation* rep)
+bool AbstractSVCBufferBasedAdaptationLogic::hasMinBufferLevel(const dash::mpd::IRepresentation* rep)
 {
 
   std::string repId = rep->GetId ();
