@@ -1,5 +1,14 @@
-The PRIMARY AUTHORS are (and/or have been):
+Primary Authors of amus-ndnSIM:
+  * Christian Kreuzberger <christian.kreuzberger@itec.aau.at>, Alpen-Adria University Klagenfurt
+  * Daniel Posch, Alpen-Adria University Klagenfurt
 
+
+------------------------------------------------------------------------------
+
+An updated list of ndnSIM Authors can be found here:
+https://github.com/named-data/ndnSIM/blob/master/AUTHORS
+
+Primary Authors of ndnSIM:
   * Alex Afanasyev               <http://lasr.cs.ucla.edu/afanasyev/index.html>
   * Spyridon "Spyros" Mastorakis <http://cs.ucla.edu/~mastorakis/>
   * Ilya Moiseenko               <http://ilyamoiseenko.com/>
