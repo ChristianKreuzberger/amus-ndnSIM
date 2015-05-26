@@ -1,13 +1,13 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /**
- * Copyright (c) 2015 Christian Kreuzberger and Daniel Posch, Alpen-Adria-University 
+ * Copyright (c) 2015 Christian Kreuzberger and Daniel Posch, Alpen-Adria-University
  * Klagenfurt
  *
- * This file is part of amus-ndnSIM, based on ndnSIM. See AUTHORS for complete list of 
+ * This file is part of amus-ndnSIM, based on ndnSIM. See AUTHORS for complete list of
  * authors and contributors.
  *
- * amus-ndnSIM and ndnSIM are free software: you can redistribute it and/or modify it 
- * under the terms of the GNU General Public License as published by the Free Software 
+ * amus-ndnSIM and ndnSIM are free software: you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free Software
  * Foundation, either version 3 of the License, or (at your option) any later version.
  *
  * amus-ndnSIM is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
@@ -141,6 +141,7 @@ FileConsumer::StartApplication() // Called at time specified by Start
   EstimatedRTT = m_initialRTT;
 
   m_sequenceStatus.clear();
+  m_sequenceStatus.resize(1); // set initial size to 1 to cover the manifest
 
 
   m_packetsReceived = m_packetsSent = m_packetsTimeout = m_packetsRetransmitted = 0;
