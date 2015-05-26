@@ -28,9 +28,6 @@ namespace player
 {
 
 ENSURE_ADAPTATION_LOGIC_INITIALIZED(SVCBufferBasedAdaptationLogic)
-ENSURE_ADAPTATION_LOGIC_INITIALIZED(SVCBufferBasedAdaptationLogicConservative)
-ENSURE_ADAPTATION_LOGIC_INITIALIZED(SVCBufferBasedAdaptationLogicAggressive)
-ENSURE_ADAPTATION_LOGIC_INITIALIZED(SVCBufferBasedAdaptationLogicNormal)
 
 
 ISegmentURL*
