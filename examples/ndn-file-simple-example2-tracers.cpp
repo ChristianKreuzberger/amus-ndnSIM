@@ -104,7 +104,7 @@ main(int argc, char* argv[])
   ndnGlobalRoutingHelper.AddOrigins("/myprefix", nodes.Get(0));
   ndn::GlobalRoutingHelper::CalculateRoutes();
 
-  Simulator::Stop(Seconds(60.0));
+  Simulator::Stop(Seconds(600.0));
 
   Simulator::Run();
   Simulator::Destroy();
