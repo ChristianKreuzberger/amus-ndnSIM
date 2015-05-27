@@ -107,35 +107,42 @@ FileConsumerWdw::DecrementWindow()
 void
 FileConsumerWdw::AfterData(bool manifest, bool timeout, uint32_t seq_nr)
 {
-  if (timeout && ignoreTimeoutsCounter == 0)
+  if (manifest)
   {
-    // had a timeout, and it's the first one of many...
-    DecrementWindow();
-
-    // ignore further timeouts for now
-    ignoreTimeoutsCounter = m_windowSize;
-
-    // we need to back off, therefore rescheduling the next send event
-    ScheduleNextSendEvent(1000.0 / m_windowSize);
-  }
-
-  if (ignoreTimeoutsCounter > 0)
+    SendPacket();
+  } else
   {
-    ignoreTimeoutsCounter--;
-  }
-
-
-  // if this was not a timeout, increase the window!
-  if (!timeout)
-  {
-    // when ignoreTimeoutsCounter > 0, then we did get a packet that we didn't expect
-    IncrementWindow();
-
-    // Schedule Next Event earlier, if necessary (most likely yes, because we increased the window)
-    if (m_nextEventScheduleTime > Simulator::Now().GetMilliSeconds() + (1000.0 / m_windowSize))
+    if (timeout && ignoreTimeoutsCounter == 0)
     {
+      // had a timeout, and it's the first one of many...
+      DecrementWindow();
+
+      // ignore further timeouts for now
+      ignoreTimeoutsCounter = m_windowSize;
+
+      // we need to back off, therefore rescheduling the next send event
       ScheduleNextSendEvent(1000.0 / m_windowSize);
     }
+
+    if (ignoreTimeoutsCounter > 0)
+    {
+      ignoreTimeoutsCounter--;
+    }
+
+
+    // if this was not a timeout, increase the window!
+    if (!timeout)
+    {
+      // when ignoreTimeoutsCounter > 0, then we did get a packet that we didn't expect
+      IncrementWindow();
+
+      // Schedule Next Event earlier, if necessary (most likely yes, because we increased the window)
+      if (m_nextEventScheduleTime > Simulator::Now().GetMilliSeconds() + (1000.0 / m_windowSize))
+      {
+        ScheduleNextSendEvent(1000.0 / m_windowSize);
+      }
+    }
+
   }
 
 
