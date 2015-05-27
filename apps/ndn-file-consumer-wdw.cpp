@@ -83,7 +83,7 @@ void
 FileConsumerWdw::IncrementWindow()
 {
   NS_LOG_FUNCTION_NOARGS();
-  unsigned int diff = (m_maxWindowSize - m_windowSize)/2;
+  double diff = ((double)m_maxWindowSize - m_windowSize)/2.0;
 
   if (diff > 0)
   {
@@ -109,14 +109,13 @@ FileConsumerWdw::AfterData(bool manifest, bool timeout, uint32_t seq_nr)
 {
   if (timeout && ignoreTimeoutsCounter == 0)
   {
-    // we got a timeout, make sure that we "ignore" the next window_size timeouts for the next timeout
-    ignoreTimeoutsCounter = m_windowSize; // this is how many timeouts we expect, based on the current timeout
-
-    //NS_LOG_UNCOND("Timeout, cwnd was " << m_windowSize);
-
+    // had a timeout, and it's the first one of many...
     DecrementWindow();
 
-    // we need to back off, rescheduling the next send event
+    // ignore further timeouts for now
+    ignoreTimeoutsCounter = m_windowSize;
+
+    // we need to back off, therefore rescheduling the next send event
     ScheduleNextSendEvent(1000.0 / m_windowSize);
   }
 
@@ -126,23 +125,20 @@ FileConsumerWdw::AfterData(bool manifest, bool timeout, uint32_t seq_nr)
   }
 
 
-
+  // if this was not a timeout, increase the window!
   if (!timeout)
   {
     // when ignoreTimeoutsCounter > 0, then we did get a packet that we didn't expect
     IncrementWindow();
 
-    if (m_nextEventScheduleTime > Simulator::Now().GetMilliSeconds() + 1000.0 / m_windowSize)
+    // Schedule Next Event earlier, if necessary (most likely yes, because we increased the window)
+    if (m_nextEventScheduleTime > Simulator::Now().GetMilliSeconds() + (1000.0 / m_windowSize))
     {
       ScheduleNextSendEvent(1000.0 / m_windowSize);
     }
   }
 
-  // if we just received the manifest, let's start sending out packets
-  if (manifest)
-  {
-    SendPacket();
-  }
+
 }
 
 
