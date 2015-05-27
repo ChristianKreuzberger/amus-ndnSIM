@@ -31,6 +31,8 @@
 
 #include "model/ndn-app-face.hpp"
 
+#include "ns3/wifi-net-device.h"
+
 #include <math.h>
 
 
@@ -569,10 +571,17 @@ long
 FileConsumer::GetFaceBitrate(uint32_t faceId)
 {
   Ptr<ns3::PointToPointNetDevice> nd1 = GetNode ()->GetDevice(faceId)->GetObject<ns3::PointToPointNetDevice>();
-  DataRateValue dv;
-  nd1->GetAttribute("DataRate", dv);
-  DataRate d = dv.Get();
-  return d.GetBitRate();
+
+  if (nd1 == NULL)
+  {
+      return 8000000; // 8 Mbit
+  } else
+  {
+    DataRateValue dv;
+    nd1->GetAttribute("DataRate", dv);
+    DataRate d = dv.Get();
+    return d.GetBitRate();
+  }
 }
 
 
@@ -580,7 +589,24 @@ uint16_t
 FileConsumer::GetFaceMTU(uint32_t faceId)
 {
   Ptr<ns3::PointToPointNetDevice> nd1 = GetNode ()->GetDevice(faceId)->GetObject<ns3::PointToPointNetDevice>();
-  return nd1->GetMtu();
+
+   if (nd1 == NULL)
+  {
+    // try getting Wifi net device
+    Ptr<ns3::WifiNetDevice> nd2 = GetNode ()->GetDevice(faceId)->GetObject<ns3::WifiNetDevice>();
+
+    if (nd2 != NULL)
+    {
+      return nd2->GetMtu();
+    } else {
+      Ptr<ns3::NetDevice> nd3 = GetNode ()->GetDevice(faceId)->GetObject<ns3::NetDevice>();
+
+      return nd3->GetMtu();
+    }
+
+  } else {
+    return nd1->GetMtu();
+  }
 
 }
 
