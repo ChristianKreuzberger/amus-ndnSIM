@@ -376,7 +376,9 @@ Our Multimedia Consumers have plenty of options to be configured. First of all, 
 ``MpdFileToRequest`` is, like the name suggests, the MPD file of the video to play. For the purpose of having a quicker start-up, it is possible to use gzip'ed MPD files here, by specifying a file like this: ``mpdfilename.mpd.gz``(the file obviously needs to be available in the directory).
 ``AdaptationLogic``  depends heavily on the MPD file. If the MPD file contains SVC content, the following adaptation logics are available: 
 
- * ``SVCBufferBasedAdaptationLogic``
+ * ``SVCBufferBasedAdaptationLogic`` - Buffer based adaptation logic for SVC, based on BIEB (Sieber et al., [Implementation and User-centric Comparison of a Novel Adaptation Logic for DASH with SVC](http://ieeexplore.ieee.org/xpls/abs_all.jsp?arnumber=6573184&tag=1)) with alpha=8 and gamma=16 - make sure to set ``MaxBufferedSeconds`` to at least ``gamma + 2 * alpha + 1`` (in this case 33), we recommend setting it to at least 60
+* ``SVCBufferBasedAdaptationLogicAggressive`` - same as above, but with alpha=2 and gamma=8, we recommend setting ``MaxBufferedSeconds`` to at least 30
+* ``SVCBufferBasedAdaptationLogicNormal``- same as above, but with alpha=4 and gamma=8, we recommend setting ``MaxBufferedSeconds`` to at least 30
  * ``SVCRateBasedAdaptationLogic``
  * ``SVCNoAdaptationLogic`` - requests all SVC representations, starting from the base layer, until the segment needs to be consumed
  * ``AlwaysLowestAdaptationLogic`` (default value) - use always the lowest representation available (warning: this might not work in all cases for SVC content)
