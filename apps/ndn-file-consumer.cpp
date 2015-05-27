@@ -574,7 +574,7 @@ FileConsumer::GetFaceBitrate(uint32_t faceId)
 
   if (nd1 == NULL)
   {
-      return 8000000; // 8 Mbit
+      return 54000000; // 54 Mbit
   } else
   {
     DataRateValue dv;

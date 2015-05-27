@@ -1,13 +1,13 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /**
- * Copyright (c) 2015 Christian Kreuzberger and Daniel Posch, Alpen-Adria-University 
+ * Copyright (c) 2015 Christian Kreuzberger and Daniel Posch, Alpen-Adria-University
  * Klagenfurt
  *
- * This file is part of amus-ndnSIM, based on ndnSIM. See AUTHORS for complete list of 
+ * This file is part of amus-ndnSIM, based on ndnSIM. See AUTHORS for complete list of
  * authors and contributors.
  *
- * amus-ndnSIM and ndnSIM are free software: you can redistribute it and/or modify it 
- * under the terms of the GNU General Public License as published by the Free Software 
+ * amus-ndnSIM and ndnSIM are free software: you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free Software
  * Foundation, either version 3 of the License, or (at your option) any later version.
  *
  * amus-ndnSIM is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
@@ -83,21 +83,12 @@ void
 FileConsumerWdw::IncrementWindow()
 {
   NS_LOG_FUNCTION_NOARGS();
-  double incrementRatio = 1000.0 / (EstimatedRTT);
+  unsigned int diff = (m_maxWindowSize - m_windowSize)/2;
 
-  if (m_windowSize < m_cwndSSThresh)
+  if (diff > 0)
   {
-    m_windowSize+= incrementRatio;
-    m_cwndPhase = SlowStart;
-  } else
-  {
-    m_windowSize = m_windowSize + incrementRatio / m_windowSize;
-    m_cwndPhase = AdditiveIncrease;
+    m_windowSize += diff;
   }
-
-  // make sure that we do not request more than we can request
-  if (m_windowSize > m_maxWindowSize)
-    m_windowSize = m_maxWindowSize;
 }
 
 
@@ -105,15 +96,10 @@ void
 FileConsumerWdw::DecrementWindow()
 {
   NS_LOG_FUNCTION_NOARGS();
-  m_windowSize = m_windowSize / 2.0;
 
-  m_cwndPhase = MultiplicativeDecrease;
+  if (m_windowSize > 10)
+    m_windowSize = m_windowSize / 2;
 
-  // make sure that we can not get a "too small" window size
-  if (m_windowSize < 4)
-    m_windowSize = 4;
-
-  m_cwndSSThresh = m_windowSize;
 }
 
 
@@ -121,7 +107,7 @@ FileConsumerWdw::DecrementWindow()
 void
 FileConsumerWdw::AfterData(bool manifest, bool timeout, uint32_t seq_nr)
 {
-  if (timeout && m_cwndPhase != MultiplicativeDecrease && ignoreTimeoutsCounter == 0)
+  if (timeout && ignoreTimeoutsCounter == 0)
   {
     // we got a timeout, make sure that we "ignore" the next window_size timeouts for the next timeout
     ignoreTimeoutsCounter = m_windowSize; // this is how many timeouts we expect, based on the current timeout
