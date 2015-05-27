@@ -73,6 +73,7 @@ FileConsumerWdw::StartApplication()
 
 
   ignoreTimeoutsCounter = 0;
+  ignoreGoodCounter = 0;
 
   m_cwndPhase = SlowStart;
 }
@@ -124,17 +125,15 @@ FileConsumerWdw::AfterData(bool manifest, bool timeout, uint32_t seq_nr)
       ScheduleNextSendEvent(1000.0 / m_windowSize);
     }
 
-    if (ignoreTimeoutsCounter > 0)
-    {
-      ignoreTimeoutsCounter--;
-    }
-
 
     // if this was not a timeout, increase the window!
     if (!timeout)
     {
-      // when ignoreTimeoutsCounter > 0, then we did get a packet that we didn't expect
-      IncrementWindow();
+      if (ignoreGoodCounter == 0)
+      {
+        ignoreGoodCounter = m_windowSize;
+        IncrementWindow();
+      }
 
       // Schedule Next Event earlier, if necessary (most likely yes, because we increased the window)
       if (m_nextEventScheduleTime > Simulator::Now().GetMilliSeconds() + (1000.0 / m_windowSize))
@@ -142,6 +141,17 @@ FileConsumerWdw::AfterData(bool manifest, bool timeout, uint32_t seq_nr)
         ScheduleNextSendEvent(1000.0 / m_windowSize);
       }
     }
+
+    if (ignoreGoodCounter > 0)
+    {
+      ignoreGoodCounter--;
+    }
+
+    if (ignoreTimeoutsCounter > 0)
+    {
+      ignoreTimeoutsCounter--;
+    }
+
 
   }
 
