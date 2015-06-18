@@ -77,6 +77,9 @@ protected:
 
   uint16_t m_MTU;
 
+
+  ndn::time::milliseconds m_freshnessTime;
+
 private:
   std::string m_prefix;
   std::string m_metaDataFile;

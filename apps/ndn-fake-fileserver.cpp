@@ -126,13 +126,13 @@ FakeFileServer::StartApplication()
 
   fprintf(stderr, "Reading list of file sizes from %s\n", m_metaDataFile.c_str());
 
+
   while (std::getline(infile,line))
   {
-    Tokenizer tok(line);
-    vecLine.assign(tok.begin(), tok.end());
-    if (vecLine.size() > 1)
+    if (line.length() > 2)
     {
-      fprintf(stderr, "File=%s,size=%s\n", vecLine.at(0).c_str(), vecLine.at(1).c_str());
+      Tokenizer tok(line);
+      vecLine.assign(tok.begin(), tok.end());
       m_fileSizes["/" + vecLine.at(0)] = atoi(vecLine.at(1).c_str());
     }
   }
@@ -141,6 +141,8 @@ FakeFileServer::StartApplication()
   infile.close();
 
   m_MTU = GetFaceMTU(0);
+
+  m_freshnessTime = ::ndn::time::milliseconds(m_freshness.GetMilliSeconds());
 }
 
 
@@ -218,9 +220,9 @@ FakeFileServer::OnInterest(shared_ptr<const Interest> interest)
   } else
   {
     NS_LOG_INFO("node(" << GetNode()->GetId() << ") responding with Payload for file " << fname);
-    NS_LOG_DEBUG("FileName: " << fname);
-    NS_LOG_DEBUG("SeqNo: " << seqNo);
+    NS_LOG_DEBUG("FileName: " << fname << ", SeqNo:" << seqNo);
 
+#ifdef DEBUG
     // check if file exists and the sanity of the sequence number requested
     long fileSize = GetFileSize(fname);
 
@@ -229,7 +231,7 @@ FakeFileServer::OnInterest(shared_ptr<const Interest> interest)
 
     if (seqNo > ceil(fileSize / m_maxPayloadSize))
       return; // sequence not available
-
+#endif
     // else:
     ReturnVirtualPayloadData(interest, fname, seqNo);
   }
@@ -244,7 +246,7 @@ FakeFileServer::ReturnManifestData(shared_ptr<const Interest> interest, std::str
 
   auto data = make_shared<Data>();
   data->setName(interest->getName());
-  data->setFreshnessPeriod(::ndn::time::milliseconds(m_freshness.GetMilliSeconds()));
+  data->setFreshnessPeriod(m_freshnessTime);
 
   // create a local buffer variable, which contains a long and an unsigned
   uint8_t buffer[sizeof(long) + sizeof(unsigned)];
@@ -281,15 +283,10 @@ FakeFileServer::ReturnVirtualPayloadData(shared_ptr<const Interest> interest, st
 {
   auto data = make_shared<Data>();
   data->setName(interest->getName());
-  data->setFreshnessPeriod(::ndn::time::milliseconds(m_freshness.GetMilliSeconds()));
 
-  long fileSize = GetFileSize(fname);
+  data->setFreshnessPeriod(m_freshnessTime);
 
   auto buffer = make_shared< ::ndn::Buffer>(m_maxPayloadSize);
-  for (int i = 0; i < m_maxPayloadSize; i++)
-  {
-    buffer->get()[i] = 0;
-  }
   data->setContent(buffer);
 
   Signature signature;
