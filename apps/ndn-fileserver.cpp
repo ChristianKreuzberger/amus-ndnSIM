@@ -162,9 +162,6 @@ FileServer::OnInterest(shared_ptr<const Interest> interest)
 
   //NS_LOG_UNCOND("NewPayload = " << m_maxPayloadSize << " (Overhead: " << diff << ") ");
 
-
-
-
   fname = fname.substr(m_prefix.length(), fname.length()); // remove the prefix
   fname = std::string(m_contentDir).append(fname); // prepend the data path
 

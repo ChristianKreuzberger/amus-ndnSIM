@@ -1,13 +1,13 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /**
- * Copyright (c) 2015 Christian Kreuzberger and Daniel Posch, Alpen-Adria-University 
+ * Copyright (c) 2015 Christian Kreuzberger and Daniel Posch, Alpen-Adria-University
  * Klagenfurt
  *
- * This file is part of amus-ndnSIM, based on ndnSIM. See AUTHORS for complete list of 
+ * This file is part of amus-ndnSIM, based on ndnSIM. See AUTHORS for complete list of
  * authors and contributors.
  *
- * amus-ndnSIM and ndnSIM are free software: you can redistribute it and/or modify it 
- * under the terms of the GNU General Public License as published by the Free Software 
+ * amus-ndnSIM and ndnSIM are free software: you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free Software
  * Foundation, either version 3 of the License, or (at your option) any later version.
  *
  * amus-ndnSIM is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
@@ -72,12 +72,18 @@ protected:
   uint16_t
   GetFaceMTU(uint32_t faceId);
 
+  size_t
+  EstimateOverhead(std::string& fname);
+
+  uint16_t m_MTU;
+
 private:
   std::string m_prefix;
-  std::string m_contentDir;
+  std::string m_metaDataFile;
   std::string m_postfixManifest;
 
   std::map<std::string,long> m_fileSizes;
+  std::map<std::string,size_t> m_packetSizes;
 
 
   uint32_t m_maxPayloadSize;

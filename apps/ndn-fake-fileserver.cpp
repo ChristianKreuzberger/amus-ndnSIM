@@ -1,13 +1,13 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /**
- * Copyright (c) 2015 Christian Kreuzberger and Daniel Posch, Alpen-Adria-University 
+ * Copyright (c) 2015 Christian Kreuzberger and Daniel Posch, Alpen-Adria-University
  * Klagenfurt
  *
- * This file is part of amus-ndnSIM, based on ndnSIM. See AUTHORS for complete list of 
+ * This file is part of amus-ndnSIM, based on ndnSIM. See AUTHORS for complete list of
  * authors and contributors.
  *
- * amus-ndnSIM and ndnSIM are free software: you can redistribute it and/or modify it 
- * under the terms of the GNU General Public License as published by the Free Software 
+ * amus-ndnSIM and ndnSIM are free software: you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free Software
  * Foundation, either version 3 of the License, or (at your option) any later version.
  *
  * amus-ndnSIM is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
@@ -42,6 +42,14 @@
 #include <sys/stat.h>
 
 #include <math.h>
+#include <fstream>
+
+
+#include <algorithm>    // copy
+#include <iterator>     // ostream_operator
+
+#include <boost/tokenizer.hpp>
+
 
 
 NS_LOG_COMPONENT_DEFINE("ndn.FakeFileServer");
@@ -64,8 +72,9 @@ FakeFileServer::GetTypeId(void)
       .AddConstructor<FakeFileServer>()
       .AddAttribute("Prefix", "Prefix, for which FakeFileServer serves the data", StringValue("/"),
                     MakeStringAccessor(&FakeFileServer::m_prefix), MakeStringChecker())
-      .AddAttribute("ContentDirectory", "The directory of which FakeFileServer serves the files", StringValue("/"),
-                    MakeStringAccessor(&FakeFileServer::m_contentDir), MakeStringChecker())
+      .AddAttribute("MetaDataFile", "A CSV file containing meta data of all files which FakeFileServer will serve",
+                    StringValue("./filelist.csv"),
+                    MakeStringAccessor(&FakeFileServer::m_metaDataFile), MakeStringChecker())
       .AddAttribute("ManifestPostfix", "The manifest string added after a file", StringValue("/manifest"),
                     MakeStringAccessor(&FakeFileServer::m_postfixManifest), MakeStringChecker())
       .AddAttribute("MaxPayloadSize", "The maximum size of the payload of a data packet", UintegerValue(1400),
@@ -100,7 +109,51 @@ FakeFileServer::StartApplication()
   App::StartApplication();
 
   FibHelper::AddRoute(GetNode(), m_prefix, m_face, 0);
+
+  // read m_metaDataFile and fill m_fileSizes
+  std::ifstream infile(m_metaDataFile.c_str());
+  if (!infile.is_open())
+  {
+    fprintf(stderr, "FakeFileServer: Error opening %s\n", m_metaDataFile.c_str());
+    return;
+  }
+
+
+  typedef boost::tokenizer< boost::escaped_list_separator<char> > Tokenizer;
+
+  std::string line;
+  std::vector<std::string> vecLine;
+
+  fprintf(stderr, "Reading list of file sizes from %s\n", m_metaDataFile.c_str());
+
+  while (std::getline(infile,line))
+  {
+    Tokenizer tok(line);
+    vecLine.assign(tok.begin(), tok.end());
+    if (vecLine.size() > 1)
+    {
+      fprintf(stderr, "File=%s,size=%s\n", vecLine.at(0).c_str(), vecLine.at(1).c_str());
+      m_fileSizes["/" + vecLine.at(0)] = atoi(vecLine.at(1).c_str());
+    }
+  }
+
+
+  infile.close();
+
+  m_MTU = GetFaceMTU(0);
 }
+
+
+
+uint16_t
+FakeFileServer::GetFaceMTU(uint32_t faceId)
+{
+  Ptr<ns3::PointToPointNetDevice> nd1 = GetNode ()->GetDevice(faceId)->GetObject<ns3::PointToPointNetDevice>();
+  return nd1->GetMtu();
+
+}
+
+
 
 void
 FakeFileServer::StopApplication()
@@ -124,6 +177,7 @@ FakeFileServer::OnInterest(shared_ptr<const Interest> interest)
     return;
 
   Name dataName(interest->getName());
+
   // get last postfix
   ndn::Name  lastPostfix = dataName.getSubName(dataName.size() -1 );
   NS_LOG_INFO("> LastPostfix = " << lastPostfix);
@@ -138,6 +192,7 @@ FakeFileServer::OnInterest(shared_ptr<const Interest> interest)
   else
   {
     seqNo = dataName.at(-1).toSequenceNumber();
+    seqNo = seqNo - 1; // Christian: the client thinks seqNo = 1 is the first one, for the server it's better to start at 0
   }
 
   // remove the last postfix
@@ -145,8 +200,15 @@ FakeFileServer::OnInterest(shared_ptr<const Interest> interest)
 
   // extract filename and get path to file
   std::string fname = dataName.toUri();  // get the uri from interest
+
+  // measure how much overhead this actually this
+  int diff = EstimateOverhead(fname);
+  // set new payload size to this value (minus 4 bytes to be safe for sequence numbers, ethernet headers, etc...)
+  m_maxPayloadSize = m_MTU - diff - 4;
+
+  //NS_LOG_UNCOND("NewPayload = " << m_maxPayloadSize << " (Overhead: " << diff << ") ");
+
   fname = fname.substr(m_prefix.length(), fname.length()); // remove the prefix
-  fname = std::string(m_contentDir).append(fname); // prepend the data path
 
   // handle manifest or data
   if (isManifest)
@@ -184,10 +246,13 @@ FakeFileServer::ReturnManifestData(shared_ptr<const Interest> interest, std::str
   data->setName(interest->getName());
   data->setFreshnessPeriod(::ndn::time::milliseconds(m_freshness.GetMilliSeconds()));
 
-  // create content with the file size in it
-  data->setContent(reinterpret_cast<const uint8_t*>(&fileSize), sizeof(long));
+  // create a local buffer variable, which contains a long and an unsigned
+  uint8_t buffer[sizeof(long) + sizeof(unsigned)];
+  memcpy(buffer, &fileSize, sizeof(long));
+  memcpy(buffer+sizeof(long), &m_maxPayloadSize, sizeof(unsigned));
 
-  NS_LOG_INFO("Manifest: " << fileSize);
+  // create content with the file size in it
+  data->setContent(reinterpret_cast<const uint8_t*>(buffer), sizeof(long) + sizeof(unsigned));
 
   Signature signature;
   SignatureInfo signatureInfo(static_cast< ::ndn::tlv::SignatureTypeValue>(255));
@@ -208,6 +273,7 @@ FakeFileServer::ReturnManifestData(shared_ptr<const Interest> interest, std::str
   m_transmittedDatas(data, this, m_face);
   m_face->onReceiveData(*data);
 }
+
 
 
 void
@@ -217,7 +283,14 @@ FakeFileServer::ReturnVirtualPayloadData(shared_ptr<const Interest> interest, st
   data->setName(interest->getName());
   data->setFreshnessPeriod(::ndn::time::milliseconds(m_freshness.GetMilliSeconds()));
 
-  data->setContent(make_shared< ::ndn::Buffer>(m_maxPayloadSize));
+  long fileSize = GetFileSize(fname);
+
+  auto buffer = make_shared< ::ndn::Buffer>(m_maxPayloadSize);
+  for (int i = 0; i < m_maxPayloadSize; i++)
+  {
+    buffer->get()[i] = 0;
+  }
+  data->setContent(buffer);
 
   Signature signature;
   SignatureInfo signatureInfo(static_cast< ::ndn::tlv::SignatureTypeValue>(255));
@@ -233,7 +306,7 @@ FakeFileServer::ReturnVirtualPayloadData(shared_ptr<const Interest> interest, st
 
 
   // to create real wire encoding
-  data->wireEncode();
+  Block tmp = data->wireEncode();
 
   m_transmittedDatas(data, this, m_face);
   m_face->onReceiveData(*data);
@@ -241,6 +314,48 @@ FakeFileServer::ReturnVirtualPayloadData(shared_ptr<const Interest> interest, st
 
 
 
+
+
+
+size_t
+FakeFileServer::EstimateOverhead(std::string& fname)
+{
+  if (m_packetSizes.find(fname) != m_packetSizes.end())
+  {
+    return m_packetSizes[fname];
+  }
+
+  uint32_t interestLength = fname.length();
+  // estimate the payload size for now
+  int estimatedMaxPayloadSize = m_MTU - interestLength - 30; // the -30 is something we saw in results, it's just to estimate...
+
+  auto data = make_shared<Data>();
+  data->setName(fname + "/1"); // to simulate that there is at least one chunk
+  data->setFreshnessPeriod(::ndn::time::milliseconds(m_freshness.GetMilliSeconds()));
+
+  auto buffer = make_shared< ::ndn::Buffer>(estimatedMaxPayloadSize);
+  data->setContent(buffer);
+
+  Signature signature;
+  SignatureInfo signatureInfo(static_cast< ::ndn::tlv::SignatureTypeValue>(255));
+
+  if (m_keyLocator.size() > 0) {
+    signatureInfo.setKeyLocator(m_keyLocator);
+  }
+
+  signature.setInfo(signatureInfo);
+  signature.setValue(Block(&m_signature, sizeof(m_signature)));
+
+  data->setSignature(signature);
+
+
+  // to create real wire encoding
+  Block tmp = data->wireEncode();
+
+  m_packetSizes[fname] = tmp.size() - estimatedMaxPayloadSize;
+
+  return tmp.size() - estimatedMaxPayloadSize;
+}
 
 
 
@@ -252,18 +367,9 @@ long FakeFileServer::GetFileSize(std::string filename)
   {
     return m_fileSizes[filename];
   }
+  fprintf(stderr, "Error finding file %s\n", filename.c_str());
   // else: query disk for file size
 
-  struct stat stat_buf;
-  int rc = stat(filename.c_str(), &stat_buf);
-
-  if (rc == 0)
-  {
-    m_fileSizes[filename] = stat_buf.st_size;
-    return stat_buf.st_size;
-  }
-  // else: file not found
-  NS_LOG_UNCOND("ERROR: File not found: " << filename);
   return -1;
 }
 
