@@ -1,13 +1,13 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /**
- * Copyright (c) 2015 Christian Kreuzberger and Daniel Posch, Alpen-Adria-University 
+ * Copyright (c) 2015 Christian Kreuzberger and Daniel Posch, Alpen-Adria-University
  * Klagenfurt
  *
- * This file is part of amus-ndnSIM, based on ndnSIM. See AUTHORS for complete list of 
+ * This file is part of amus-ndnSIM, based on ndnSIM. See AUTHORS for complete list of
  * authors and contributors.
  *
- * amus-ndnSIM and ndnSIM are free software: you can redistribute it and/or modify it 
- * under the terms of the GNU General Public License as published by the Free Software 
+ * amus-ndnSIM and ndnSIM are free software: you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free Software
  * Foundation, either version 3 of the License, or (at your option) any later version.
  *
  * amus-ndnSIM is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
@@ -47,10 +47,10 @@ RateAndBufferBasedAdaptationLogic::GetNextSegment(unsigned int *requested_segmen
 
   if (this->m_multimediaPlayer->GetBufferLevel() < 4)
   {
-    factor = 0.33;
+    factor = 0.25;
   } else if (this->m_multimediaPlayer->GetBufferLevel() >= 4 && this->m_multimediaPlayer->GetBufferLevel() < 8)
   {
-    factor = 0.66;
+    factor = 0.50;
   } else if (this->m_multimediaPlayer->GetBufferLevel() >= 8 && this->m_multimediaPlayer->GetBufferLevel() < 16)
   {
     factor = 1.0;
@@ -76,7 +76,7 @@ RateAndBufferBasedAdaptationLogic::GetNextSegment(unsigned int *requested_segmen
     }
   }
 
-  if (useRep == NULL)
+  if (useRep == NULL) // fallback
     useRep = GetLowestRepresentation();
 
   //std::cerr << "Representation used: " << useRep->GetId() << std::endl;

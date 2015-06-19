@@ -47,10 +47,10 @@ DASHJSAdaptationLogic::GetNextSegment(unsigned int *requested_segment_number,
 
   if (this->m_multimediaPlayer->GetBufferLevel() < 4)
   { // be passive in the beginning
-    factor = 0.33;
+    factor = 0.25; // essentially, we want the first segment in 1/4 of the time, assuming current download capabilities
   } else if (this->m_multimediaPlayer->GetBufferLevel() >= 4 && this->m_multimediaPlayer->GetBufferLevel() < 8)
   { // still passive when there is 4 - 8 seconds in the buffer
-    factor = 0.66;
+    factor = 0.5;
   } else if (this->m_multimediaPlayer->GetBufferLevel() >= 8 && this->m_multimediaPlayer->GetBufferLevel() < 16)
   { // okay, we have 8 seconds in the buffer, that's quite good against short time fluctuations
     factor = 1.0;
@@ -78,7 +78,7 @@ DASHJSAdaptationLogic::GetNextSegment(unsigned int *requested_segment_number,
     }
   }
 
-  if (useRep == NULL)
+  if (useRep == NULL) // fallback
     useRep = GetLowestRepresentation();
 
   //std::cerr << "Representation used: " << useRep->GetId() << std::endl;
