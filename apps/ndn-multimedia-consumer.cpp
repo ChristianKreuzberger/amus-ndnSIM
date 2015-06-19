@@ -705,6 +705,8 @@ MultimediaConsumer<Parent>::consume()
       // we havent started yet, so we can measure the start-up delay until now
       m_hasStartedPlaying = true;
       int64_t startUpDelay = Simulator::Now().GetMilliSeconds() - m_startTime;
+      // LOG STARTUP DELAY HERE
+      freezeTime = startUpDelay;
       NS_LOG_DEBUG("Started consuming ... (Start-Up Delay: " << startUpDelay << " milliseconds)");
     }
     else if (m_freezeStartTime != 0)
