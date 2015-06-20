@@ -18,7 +18,7 @@
  * amus-ndnSIM, e.g., in COPYING.md file.  If not, see <http://www.gnu.org/licenses/>.
  **/
 
-#include "adaptation-logic-dashjs.hpp"
+#include "adaptation-logic-buffer-based.hpp"
 #include "multimedia-player.hpp"
 
 
@@ -27,10 +27,10 @@ namespace dash
 namespace player
 {
 
-ENSURE_ADAPTATION_LOGIC_INITIALIZED(DASHJSAdaptationLogic)
+ENSURE_ADAPTATION_LOGIC_INITIALIZED(BufferBasedAdaptationLogic)
 
 ISegmentURL*
-DASHJSAdaptationLogic::GetNextSegment(unsigned int *requested_segment_number,
+BufferBasedAdaptationLogic::GetNextSegment(unsigned int *requested_segment_number,
                                                   const dash::mpd::IRepresentation **usedRepresentation, bool *hasDownloadedAllSegments)
 {
   if(currentSegmentNumber < getTotalSegments ())
@@ -45,37 +45,58 @@ DASHJSAdaptationLogic::GetNextSegment(unsigned int *requested_segment_number,
 
   double factor = 1.0;
 
-
-  if (this->m_multimediaPlayer->GetBufferLevel() < 4)
-  { // be passive in the beginning
-    factor = 0.5; // essentially, we want the first segment in 1/2 of the time, assuming current download capabilities
-  } else if ( this->m_multimediaPlayer->GetBufferLevel() < 16)
-  {
-    factor = 0.75;
-  }
+  double speed_of_last_rep = 0.0;
 
   double cur_download_speed = this->m_multimediaPlayer->GetLastDownloadBitRate();
 
-  if (previousDownloadSpeed == 0)
-    previousDownloadSpeed = cur_download_speed;
 
-  double weighted_download_speed = (0.7*previousDownloadSpeed + 0.3*cur_download_speed);
-
-  double highest_bitrate = 0.0;
-
-  for (auto& keyValue : *(this->m_availableRepresentations))
+  if (lastUsedRep != NULL)
   {
-    const IRepresentation* rep = keyValue.second;
-    // std::cerr << "Rep=" << keyValue.first << " has bitrate " << rep->GetBandwidth() << std::endl;
-    if (rep->GetBandwidth() < weighted_download_speed*factor)
-    {
-      if (rep->GetBandwidth() > highest_bitrate)
+    speed_of_last_rep = lastUsedRep->GetBandwidth();
+    useRep = lastUsedRep;
+
+
+    if (this->m_multimediaPlayer->GetBufferLevel() < 8) {
+      // whatever representation it is, decrease it
+      double highest_bitrate = 0.0;
+
+      for (auto& keyValue : *(this->m_availableRepresentations))
       {
-        useRep = rep;
-        highest_bitrate = rep->GetBandwidth();
+        const IRepresentation* rep = keyValue.second;
+        // std::cerr << "Rep=" << keyValue.first << " has bitrate " << rep->GetBandwidth() << std::endl;
+        if (rep->GetBandwidth() < speed_of_last_rep && rep->GetBandwidth() < cur_download_speed)
+        {
+          if (rep->GetBandwidth() > highest_bitrate)
+          {
+            useRep = rep;
+            highest_bitrate = rep->GetBandwidth();
+          }
+        }
+      }
+
+    } else if (this->m_multimediaPlayer->GetBufferLevel() < 14) {
+      // stay at this representation, do not modify userep
+    } else { // >= 16
+      // time to increase to the next best representation
+      fprintf(stderr, "trying to increase from %f\n", speed_of_last_rep);
+      double highest_bitrate = 999999999.99;
+
+      for (auto& keyValue : *(this->m_availableRepresentations))
+      {
+        const IRepresentation* rep = keyValue.second;
+        // std::cerr << "Rep=" << keyValue.first << " has bitrate " << rep->GetBandwidth() << std::endl;
+        if (rep->GetBandwidth() > speed_of_last_rep && rep->GetBandwidth() < cur_download_speed)
+        {
+          if (rep->GetBandwidth() < highest_bitrate)
+          {
+            useRep = rep;
+            highest_bitrate = rep->GetBandwidth();
+          }
+        }
       }
     }
   }
+
 
   if (useRep == NULL) // fallback
     useRep = GetLowestRepresentation();
@@ -86,9 +107,8 @@ DASHJSAdaptationLogic::GetNextSegment(unsigned int *requested_segment_number,
   *usedRepresentation = useRep;
   *requested_segment_number = currentSegmentNumber;
   *hasDownloadedAllSegments = false;
+  lastUsedRep = useRep;
 
-  // remember previousDownloadSpeed
-  previousDownloadSpeed = weighted_download_speed;
 
   return useRep->GetSegmentList()->GetSegmentURLs().at(currentSegmentNumber++);
 }

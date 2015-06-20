@@ -53,9 +53,9 @@ RateAndBufferBasedAdaptationLogic::GetNextSegment(unsigned int *requested_segmen
     factor = 0.50;
   } else if (this->m_multimediaPlayer->GetBufferLevel() >= 8 && this->m_multimediaPlayer->GetBufferLevel() < 16)
   {
-    factor = 1.0;
+    factor = 0.75;
   } else {
-    factor = 1.2;
+    factor = 1.0;
   }
 
   double last_download_speed = this->m_multimediaPlayer->GetLastDownloadBitRate();

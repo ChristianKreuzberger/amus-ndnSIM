@@ -18,8 +18,8 @@
  * amus-ndnSIM, e.g., in COPYING.md file.  If not, see <http://www.gnu.org/licenses/>.
  **/
 
-#ifndef DASH_DASHJS_ADAPTATION_LOGIC
-#define DASH_DASHJS_ADAPTATION_LOGIC
+#ifndef DASH_BUFFERBASED_ADAPTATION_LOGIC
+#define DASH_BUFFERBASED_ADAPTATION_LOGIC
 
 #include "adaptation-logic.hpp"
 
@@ -27,23 +27,23 @@ namespace dash
 {
 namespace player
 {
-class DASHJSAdaptationLogic : public AdaptationLogic
+class BufferBasedAdaptationLogic : public AdaptationLogic
 {
 public:
-  DASHJSAdaptationLogic(MultimediaPlayer* mPlayer) : AdaptationLogic (mPlayer)
+  BufferBasedAdaptationLogic(MultimediaPlayer* mPlayer) : AdaptationLogic (mPlayer)
   {
     currentSegmentNumber = 0;
-    previousDownloadSpeed = 0;
+    lastUsedRep = NULL;
   }
 
   virtual std::string GetName() const
   {
-    return "dash::player::DASHJSAdaptationLogic";
+    return "dash::player::BufferBasedAdaptationLogic";
   }
 
   static std::shared_ptr<AdaptationLogic> Create(MultimediaPlayer* mPlayer)
   {
-    return std::make_shared<DASHJSAdaptationLogic>(mPlayer);
+    return std::make_shared<BufferBasedAdaptationLogic>(mPlayer);
   }
 
   virtual ISegmentURL*
@@ -51,16 +51,15 @@ public:
 
 
 protected:
-  static DASHJSAdaptationLogic _staticLogic;
-  double previousDownloadSpeed;
+  static BufferBasedAdaptationLogic _staticLogic;
 
-  DASHJSAdaptationLogic()
+  BufferBasedAdaptationLogic()
   {
-    ENSURE_ADAPTATION_LOGIC_REGISTERED(DASHJSAdaptationLogic);
+    ENSURE_ADAPTATION_LOGIC_REGISTERED(BufferBasedAdaptationLogic);
   }
 
   unsigned int currentSegmentNumber;
-
+  const IRepresentation* lastUsedRep;
 
 };
 }
