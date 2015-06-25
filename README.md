@@ -56,7 +56,7 @@ libdash.
 
 	# build ndn-cxx
 	cd ndn-cxx
-	./waf configure
+	./waf configure --enable-shared --disable-static
 	./waf
 	# install ndn-cxx
 	sudo ./waf install
