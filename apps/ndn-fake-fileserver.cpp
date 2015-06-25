@@ -264,7 +264,7 @@ FakeFileServer::ReturnManifestData(shared_ptr<const Interest> interest, std::str
   }
 
   signature.setInfo(signatureInfo);
-  signature.setValue(Block(&m_signature, sizeof(m_signature)));
+  signature.setValue(::ndn::nonNegativeIntegerBlock(::ndn::tlv::SignatureValue, m_signature));
 
   data->setSignature(signature);
 
@@ -297,7 +297,7 @@ FakeFileServer::ReturnVirtualPayloadData(shared_ptr<const Interest> interest, st
   }
 
   signature.setInfo(signatureInfo);
-  signature.setValue(Block(&m_signature, sizeof(m_signature)));
+  signature.setValue(::ndn::nonNegativeIntegerBlock(::ndn::tlv::SignatureValue, m_signature));
 
   data->setSignature(signature);
 
@@ -341,7 +341,7 @@ FakeFileServer::EstimateOverhead(std::string& fname)
   }
 
   signature.setInfo(signatureInfo);
-  signature.setValue(Block(&m_signature, sizeof(m_signature)));
+  signature.setValue(::ndn::nonNegativeIntegerBlock(::ndn::tlv::SignatureValue, m_signature));
 
   data->setSignature(signature);
 
