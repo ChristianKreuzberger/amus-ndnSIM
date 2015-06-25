@@ -38,6 +38,7 @@ def configure(conf):
                    uselib_store='NDN_CXX', mandatory=True)
 
     
+    conf.env.append_value('NS3_MODULE_PATH',conf.env['LIBPATH_NDN_CXX'])
  
     # check for libdash
     conf.env['ENABLE_DASH'] = False
