@@ -80,15 +80,19 @@ MultimediaPlayer::SetAvailableRepresentations(std::map<std::string, IRepresentat
 
 
 bool
-MultimediaPlayer::AddToBuffer(unsigned int segmentNr, const dash::mpd::IRepresentation *usedRepresentation)
+MultimediaPlayer::AddToBuffer(unsigned int segmentNr, const dash::mpd::IRepresentation *usedRepresentation, float experiencedDownloadBitrate, bool isLayeredContent)
 {
-  return m_buffer->addToBuffer (segmentNr, usedRepresentation);
+  // ignore isLayeredContent for now
+  return m_buffer->addToBuffer (segmentNr, usedRepresentation, experiencedDownloadBitrate);
 }
 
 bool
-MultimediaPlayer::EnoughSpaceInBuffer(unsigned int segmentNr, const dash::mpd::IRepresentation *usedRepresentation)
+MultimediaPlayer::EnoughSpaceInBuffer(unsigned int segmentNr, const dash::mpd::IRepresentation *usedRepresentation, bool isLayeredContent)
 {
-  return m_buffer->enoughSpaceInBuffer (segmentNr, usedRepresentation);
+  if (isLayeredContent) // e.g., SVC
+    return m_buffer->enoughSpaceInLayeredBuffer (segmentNr, usedRepresentation);
+  else // e.g., AVC
+    return m_buffer->enoughSpaceInTotalBuffer (segmentNr, usedRepresentation);
 }
 
 

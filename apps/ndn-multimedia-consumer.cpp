@@ -198,8 +198,8 @@ MultimediaConsumer<Parent>::StopApplication() // Called at time specified by Sto
       //ok check how many segments we have not consumed
       while(totalConsumedSegments < mPlayer->GetAdaptationLogic()->getTotalSegments())
       {
-        m_playerTracer(this, totalConsumedSegments++, -1, "0",
-                       0, 0, std::vector<std::string>());
+        m_playerTracer(this, totalConsumedSegments++,  "0",
+                       0, 0, 0, std::vector<std::string>());
       }
     }
   }
@@ -342,6 +342,7 @@ MultimediaConsumer<Parent>::OnMpdFile()
 
 
   NS_LOG_DEBUG("Download Speed of MPD file was : " << super::lastDownloadBitrate << " bits per second");
+  m_isLayeredContent = false;
 
   m_availableRepresentations.clear();
   for (IRepresentation* rep : reps)
@@ -370,6 +371,9 @@ MultimediaConsumer<Parent>::OnMpdFile()
     std::vector<std::string> dependencies = rep->GetDependencyId ();
 
     unsigned int requiredDownloadSpeed = rep->GetBandwidth();
+
+    if (dependencies.size() > 0) // we found out that this is layered content
+      m_isLayeredContent = true;
 
     NS_LOG_DEBUG("ID = " << repId << ", DepId=" <<
         dependencies.size() << ", width=" << width << ", height=" << height << ", bwReq=" << requiredDownloadSpeed);
@@ -489,21 +493,21 @@ MultimediaConsumer<Parent>::OnMultimediaFile()
   else
   {
     // normal segment
-    //unsigned long curTime = Simulator::Now().GetMilliSeconds();
-    //std::cerr << "Normal Segment received after " << (curTime - m_startTime)  << " ms.." << std::endl;
 
     //fprintf(stderr, "lastBitrate = %f\n", super::lastDownloadBitrate);
     mPlayer->SetLastDownloadBitRate(super::lastDownloadBitrate);
 
-    if(mPlayer->EnoughSpaceInBuffer(requestedSegmentNr, requestedRepresentation))
+    // check if there is enough space in buffer 
+    if(mPlayer->EnoughSpaceInBuffer(requestedSegmentNr, requestedRepresentation, m_isLayeredContent))
     {
-      if(mPlayer->AddToBuffer(requestedSegmentNr, requestedRepresentation))
-        NS_LOG_DEBUG("Segment Accapted for Buffering");
+      if(mPlayer->AddToBuffer(requestedSegmentNr, requestedRepresentation, super::lastDownloadBitrate, m_isLayeredContent))
+        NS_LOG_DEBUG("Segment Accepted for Buffering");
       else
         NS_LOG_DEBUG("Segment Rejected for Buffering");
     }
     else
     {
+      // try again in 1 second, and again and again... but do not donwload anything in the meantime
       Simulator::Schedule(Seconds(1.0), &MultimediaConsumer<Parent>::OnMultimediaFile, this);
       return;
     }
@@ -697,7 +701,6 @@ MultimediaConsumer<Parent>::consume()
   double consumedSeconds = entry.segmentDuration;
   if ( consumedSeconds > 0)
   {
-    //fprintf(stderr, "Consumed Segment %d, with Rep %s for %f seconds\n",entry.segmentNumber,entry.repId.c_str(), entry.segmentDuration);
     NS_LOG_DEBUG("Consumed Segment " << entry.segmentNumber << ", with Rep " << entry.repId << " for " << entry.segmentDuration << "seconds");
     int64_t freezeTime = 0;
     if (!m_hasStartedPlaying)
@@ -718,8 +721,8 @@ MultimediaConsumer<Parent>::consume()
       NS_LOG_DEBUG("Freeze Of " << freezeTime << " milliseconds is over!");
     }
 
-    m_playerTracer(this, entry.segmentNumber, entry.segmentDuration, entry.repId,
-                   entry.bitrate_bit_s, freezeTime, entry.depIds);
+    //fprintf(stderr,  "Current Buffer Level: %f\n", mPlayer->GetBufferLevel());
+    m_playerTracer(this, entry.segmentNumber, entry.repId,entry.experienced_bitrate_bit_s, freezeTime, (unsigned int) (mPlayer->GetBufferLevel()), entry.depIds);
 
     NS_LOG_DEBUG("Consuming " << consumedSeconds << " seconds from buffer...");
     totalConsumedSegments++;

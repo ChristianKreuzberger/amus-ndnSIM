@@ -38,7 +38,9 @@ public:
   {
     unsigned int segmentNumber;
     double segmentDuration;
-    unsigned int bitrate_bit_s;
+    unsigned int bitrate_bit_s; // the segments representation bitrate (as advertised by mpd)
+    unsigned int experienced_bitrate_bit_s; // the experiended download bitrate for this segment
+
     std::vector<std::string>  depIds;
     std::string repId;
 
@@ -47,6 +49,7 @@ public:
       segmentNumber = 0;
       segmentDuration = 0.0;
       bitrate_bit_s = 0.0;
+      experienced_bitrate_bit_s = 0.0;
       repId = "InvalidSegment";
     }
 
@@ -56,16 +59,19 @@ public:
       segmentNumber = other.segmentNumber;
       segmentDuration = other.segmentDuration;
       bitrate_bit_s = other.bitrate_bit_s;
+      experienced_bitrate_bit_s = other.experienced_bitrate_bit_s;
       depIds = other.depIds;
     }
   };
 
   MultimediaBuffer(unsigned int maxBufferedSeconds);
 
-  bool addToBuffer(unsigned int segmentNumber, const dash::mpd::IRepresentation* usedRepresentation);
-  bool enoughSpaceInBuffer(unsigned int segmentNumber, const dash::mpd::IRepresentation* usedRepresentation);
+  bool addToBuffer(unsigned int segmentNumber, const dash::mpd::IRepresentation* usedRepresentation, float experiencedDownloadBitrate);
+  bool enoughSpaceInLayeredBuffer(unsigned int segmentNumber, const dash::mpd::IRepresentation* usedRepresentation);
+  bool enoughSpaceInTotalBuffer(unsigned int segmentNumber, const dash::mpd::IRepresentation* usedRepresentation);
   BufferRepresentationEntry consumeFromBuffer();
   bool isFull(std::string repId, double additional_seconds = 0.0);
+  bool isFull(double additional_seconds = 0.0);
   bool isEmpty();
   double getBufferedSeconds(); //returns the buffered seconds for the "lowest" representation
   double getBufferedSeconds(std::string repId); //returns the buffered seconds for representation = repId

@@ -31,7 +31,7 @@ MultimediaBuffer::MultimediaBuffer(unsigned int maxBufferedSeconds)
   toConsumeSegmentNumber = 0;
 }
 
-bool MultimediaBuffer::addToBuffer(unsigned int segmentNumber, const dash::mpd::IRepresentation* usedRepresentation)
+bool MultimediaBuffer::addToBuffer(unsigned int segmentNumber, const dash::mpd::IRepresentation* usedRepresentation, float experiencedDownloadBitrate)
 {
   //check if we receive a segment with a too large number
   if(toBufferSegmentNumber < segmentNumber)
@@ -80,13 +80,14 @@ bool MultimediaBuffer::addToBuffer(unsigned int segmentNumber, const dash::mpd::
   entry.segmentNumber = segmentNumber;
   entry.depIds = usedRepresentation->GetDependencyId ();
   entry.bitrate_bit_s = usedRepresentation->GetBandwidth ();
+  entry.experienced_bitrate_bit_s = (unsigned int) experiencedDownloadBitrate;
 
   buff[segmentNumber][usedRepresentation->GetId ()] = entry;
   toBufferSegmentNumber++;
   return true;
 }
 
-bool MultimediaBuffer::enoughSpaceInBuffer(unsigned int segmentNumber, const dash::mpd::IRepresentation* usedRepresentation)
+bool MultimediaBuffer::enoughSpaceInLayeredBuffer(unsigned int segmentNumber, const dash::mpd::IRepresentation* usedRepresentation)
 {
   //determine segment duration
   double duration = (double) usedRepresentation->GetSegmentList()->GetDuration();
@@ -94,13 +95,35 @@ bool MultimediaBuffer::enoughSpaceInBuffer(unsigned int segmentNumber, const das
 
   if(isFull(usedRepresentation->GetId (),duration))
     return false;
-
+ 
   return true;
 }
+
+
+bool MultimediaBuffer::enoughSpaceInTotalBuffer(unsigned int segmentNumber, const dash::mpd::IRepresentation* usedRepresentation)
+{
+  //determine segment duration
+  double duration = (double) usedRepresentation->GetSegmentList()->GetDuration();
+  duration /= (double) usedRepresentation->GetSegmentList()->GetTimescale ();
+
+  if(isFull(duration))
+    return false;
+ 
+  return true;
+}
+
 
 bool MultimediaBuffer::isFull(std::string repId, double additional_seconds)
 {
   if(maxBufferedSeconds < additional_seconds+getBufferedSeconds(repId))
+    return true;
+  return false;
+}
+
+
+bool MultimediaBuffer::isFull(double additional_seconds)
+{
+  if(maxBufferedSeconds < additional_seconds+getBufferedSeconds())
     return true;
   return false;
 }
@@ -112,7 +135,7 @@ bool MultimediaBuffer::isEmpty()
   return false;
 }
 
-
+/** get buffered seconds from all segments */
 double MultimediaBuffer::getBufferedSeconds()
 {
   double bufferSize = 0.0;
@@ -124,6 +147,7 @@ double MultimediaBuffer::getBufferedSeconds()
   return bufferSize;
 }
 
+/** get buffered seconds only from segments belonging to the representation id repId */
 double MultimediaBuffer::getBufferedSeconds(std::string repId)
 {
   double bufferSize = 0.0;

@@ -147,9 +147,9 @@ private:
 
   void
   ConsumeStats(Ptr<ns3::ndn::App> app,
-            unsigned int segmentNr, double segmentDuration,
-            std::string representationId, unsigned int segmentBitrate/*cumulative*/,
-            int64_t stallingTime, std::vector<std::string> dependencyIds);
+                               unsigned int segmentNr, std::string representationId, 
+                               unsigned int segmentExperiencedBitrate,
+                               unsigned int stallingTime, unsigned int bufferLevel, std::vector<std::string> dependencyIds);
 
 private:
   std::string m_node;

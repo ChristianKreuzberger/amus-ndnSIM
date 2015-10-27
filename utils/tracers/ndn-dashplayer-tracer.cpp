@@ -215,22 +215,22 @@ DASHPlayerTracer::PrintHeader(std::ostream& os) const
      << "\t"
      << "SegmentNumber"
      << "\t"
-     << "SegmentDuration(sec)"
-     << "\t"
      << "SegmentRepID"
      << "\t"
-     << "SegmentBitrate(bit/s)"
+     << "SegmentExperiencedBitrate(bit/s)"
      << "\t"
      << "StallingTime(msec)"
+     << "\t"
+     << "BufferLevel(s)"
      << "\t"
      << "SegmentDepIds";
 }
 
 void
 DASHPlayerTracer::ConsumeStats(Ptr<ns3::ndn::App> app,
-                               unsigned int segmentNr, double segmentDuration,
-                               std::string representationId, unsigned int segmentBitrate/*cumulative*/,
-                               int64_t stallingTime, std::vector<std::string> dependencyIds)
+                               unsigned int segmentNr, std::string representationId, 
+                               unsigned int segmentExperiencedBitrate,
+                               unsigned int stallingTime, unsigned int bufferLevel, std::vector<std::string> dependencyIds)
 {
   std::string depIdStr = "";
 
@@ -243,8 +243,8 @@ DASHPlayerTracer::ConsumeStats(Ptr<ns3::ndn::App> app,
   }
 
   *m_os << Simulator::Now().ToDouble(Time::S) << "\t" << m_node << "\t" /*<< app->GetId() << "\t"*/
-        << segmentNr << "\t" << segmentDuration << "\t" << representationId << "\t"
-        << segmentBitrate << "\t" << stallingTime << "\t" << depIdStr << "\n";
+        << segmentNr << "\t" << representationId << "\t"
+        << segmentExperiencedBitrate << "\t" << bufferLevel << "\t" << stallingTime << "\t" << depIdStr << "\n";
 }
 
 

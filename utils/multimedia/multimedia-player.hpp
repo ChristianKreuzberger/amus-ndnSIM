@@ -43,8 +43,11 @@ public:
   MultimediaPlayer(std::string AdaptationLogicStr, unsigned int maxBufferedSeconds);
   ~MultimediaPlayer();
 
-  bool AddToBuffer(unsigned int segmentNr, const dash::mpd::IRepresentation* usedRepresentation);
-  bool EnoughSpaceInBuffer(unsigned int segmentNr, const dash::mpd::IRepresentation* usedRepresentation);
+  bool AddToBuffer(unsigned int segmentNr, const dash::mpd::IRepresentation* usedRepresentation, float experiencedDownloadBitrate, bool isLayeredContent);
+
+  // Check if there is enough Space in Buffer
+  bool EnoughSpaceInBuffer(unsigned int segmentNr, const dash::mpd::IRepresentation* usedRepresentation, bool isLayeredContent);
+
 
   double GetBufferLevel(std::string repId = std::string("NULL"));
   double GetBufferPercentage(std::string repId = std::string("NULL"));

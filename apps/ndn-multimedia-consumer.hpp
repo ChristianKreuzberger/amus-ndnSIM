@@ -125,6 +125,7 @@ protected:
   std::string m_initSegment; ///< \brief the URI of the init segment
   std::string m_curRepId; ///< \brief the representation ID that's currently being downloaded
 
+  bool m_isLayeredContent; ///< \brief tells us whether the content that this player is requesting is layered (e.g., SVC) or not (e.g., AVC)
 
   std::vector<std::string /* representation_id */> m_downloadedRepresentations;
   int64_t m_startTime;
@@ -176,9 +177,9 @@ protected:
   virtual void
   DownloadSegment();
 
-  TracedCallback<Ptr<ns3::ndn::App> /*App*/, unsigned int /*SegmentNr*/, double /*SegmentDuration*/,
-                std::string /*RepresntationId*/, unsigned int /*cumulative SegmentBitrate*/,
-                int64_t /*StallingTime*/,std::vector<std::string> /*DependencyIds*/> m_playerTracer;
+  TracedCallback<Ptr<ns3::ndn::App> /*App*/, unsigned int /*SegmentNr*/, 
+                std::string /*RepresentationId*/, unsigned int /* experiendedBitrate */,
+                unsigned int /*StallingTime*/, unsigned int /* buffer level */, std::vector<std::string> /*DependencyIds*/> m_playerTracer;
 
 };
 
