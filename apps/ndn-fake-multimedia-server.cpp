@@ -54,6 +54,12 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/lexical_cast.hpp>
 
+#include <boost/iostreams/filtering_streambuf.hpp>
+#include <boost/iostreams/copy.hpp>
+#include <boost/iostreams/filter/gzip.hpp>
+#include <boost/iostreams/stream.hpp>
+
+
 
 NS_LOG_COMPONENT_DEFINE("ndn.FakeMultimediaServer");
 
@@ -213,7 +219,12 @@ FakeMultimediaServer::StartApplication()
   mpdData << "</AdaptationSet></Period></MPD>" << std::endl;
 
   //fprintf(stderr, "MPD='%s'\n", mpdData.str().c_str());
-  m_mpdFileContent = mpdData.str();
+  
+  // compress
+  std::stringstream compressedMpdData;
+  CompressString(mpdData.str(), compressedMpdData);
+
+  m_mpdFileContent = compressedMpdData.str();
 
   infile.close();
 
@@ -327,6 +338,19 @@ FakeMultimediaServer::OnInterest(shared_ptr<const Interest> interest)
       ReturnVirtualPayloadData(interest, fname, seqNo);
     }
   }
+}
+
+
+bool
+FakeMultimediaServer::CompressString(std::string input, std::stringstream& outputStream)
+{
+  boost::iostreams::filtering_streambuf< boost::iostreams::input> in;
+  in.push( boost::iostreams::gzip_compressor());
+  std::stringstream data;
+  data << input;
+  in.push(data);
+  boost::iostreams::copy(in, outputStream);
+  return true;
 }
 
 

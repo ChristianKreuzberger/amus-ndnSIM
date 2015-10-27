@@ -57,6 +57,10 @@ protected:
   virtual void
   StopApplication(); // Called at time specified by Stop
 
+
+  bool
+  CompressString(std::string input, std::stringstream& outputStream);
+
   void
   ReturnManifestData(shared_ptr<const Interest> interest, std::string& fname); // return file-manifest data
 
