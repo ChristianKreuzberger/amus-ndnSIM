@@ -219,9 +219,9 @@ DASHPlayerTracer::PrintHeader(std::ostream& os) const
      << "\t"
      << "SegmentExperiencedBitrate(bit/s)"
      << "\t"
-     << "StallingTime(msec)"
-     << "\t"
      << "BufferLevel(s)"
+     << "\t"
+     << "StallingTime(msec)"
      << "\t"
      << "SegmentDepIds";
 }
