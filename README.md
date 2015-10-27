@@ -1,6 +1,9 @@
 amus-ndnSIM -  Adaptive Multimedia Streaming Framework for ndnSIM
 ===========
 
+NOTE: This version works only with ndnSIM 2.0 and the related ndn-cxx version(s). We are aware that at least revision 
+a1ffbc7a256f308d0ac318f02ebba1d6fa2305f8 of ndn-cxx works with this repository.
+
 This is a custom version of ndnSIM 2.0, supporting Adaptive Multimedia Streaming and the BRITE extension.
 Please refer to the original [ndnSIM github repository](http://github.com/named-data/ndnSIM) for documentation about
 ndnSIM and ns-3.
@@ -18,7 +21,7 @@ libdash.
 * Clone git repositories
 * Download Brite repository
 * Build Brite
-* Build ndn-cxx
+* Build ndn-cxx (revision a1ffbc7a256f308d0ac318f02ebba1d6fa2305f8)
 * Build libdash
 * Build ns-3 with amus-ndnSIM
 
@@ -42,6 +45,9 @@ libdash.
 
 	# clone git repositories for ndn/ndnSIM
 	git clone https://github.com/named-data/ndn-cxx.git ndn-cxx
+	cd ndn-cxx
+	git checkout a1ffbc7a256f308d0ac318f02ebba1d6fa2305f8 .
+	cd ..
 	git clone https://github.com/cawka/ns-3-dev-ndnSIM.git ns-3
 	git clone https://github.com/cawka/pybindgen.git pybindgen
 	git clone https://github.com/ChristianKreuzberger/amus-ndnSIM.git ns-3/src/ndnSIM
