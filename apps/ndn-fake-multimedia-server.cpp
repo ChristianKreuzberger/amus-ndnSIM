@@ -147,6 +147,35 @@ FakeMultimediaServer::StartApplication()
 
   // get header and ignore
   std::getline(infile,line);
+
+
+  std::ostringstream mpdData;
+
+  mpdData << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << std::endl 
+          << "<MPD xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"" << std::endl
+          << "xmlns=\"urn:mpeg:DASH:schema:MPD:2011\" xsi:schemaLocation=\"urn:mpeg:DASH:schema:MPD:2011\"" << std::endl
+          << "profiles=\"urn:mpeg:dash:profile:isoff-main:2011\" type=\"static\"" << std::endl;
+
+  int totalVideoDuration = number_of_segments * segment_duration;
+
+  int videoDurationInSeconds = totalVideoDuration % 60;
+  totalVideoDuration -= videoDurationInSeconds;
+  totalVideoDuration = totalVideoDuration / 60;
+  int videoDurationInMinutes = totalVideoDuration % 60;
+  totalVideoDuration -= videoDurationInMinutes;
+  int videoDurationInHours = totalVideoDuration / 60;
+
+  
+
+
+  mpdData << "mediaPresentationDuration=\"PT" << videoDurationInHours << "H" << videoDurationInMinutes << "M" << videoDurationInSeconds << "S\" "; 
+  mpdData << "minBufferTime=\"PT2.0S\">" << std::endl;
+  mpdData << "<BaseURL>" << m_prefix << "/</BaseURL>" << std::endl
+          << "<Period start=\"PT0S\">" << std::endl << "<AdaptationSet bitstreamSwitching=\"true\">" << std::endl;
+
+
+
+
   
   while (std::getline(infile,line))
   {
@@ -154,13 +183,44 @@ FakeMultimediaServer::StartApplication()
     {
       Tokenizer tok(line);
       vecLine.assign(tok.begin(), tok.end());
-      fprintf(stderr, "ReprId=%s, Bitrate=%s\n", vecLine.at(0).c_str(), vecLine.at(3).c_str());
- //     m_fileSizes["/" + vecLine.at(0)] = atoi(vecLine.at(1).c_str());
+      // reprId,screenWidth,screenHeight,bitrate
+      std::string repr_id = vecLine.at(0);
+      std::string screen_width = vecLine.at(1);
+      std::string screen_height = vecLine.at(2);
+      std::string bitrate = vecLine.at(3); 
+      int iBitrate = atoi(bitrate.c_str());
+
+      mpdData << "<Representation id=\"" << repr_id << "\" codecs=\"avc1\" mimeType=\"video/mp4\"" <<
+                 " width=\"" << screen_width << "\" height=\"" << screen_height << "\" startWithSAP=\"1\" bandwidth=\"" << (iBitrate*1000) << "\">" << std::endl;
+      mpdData << "<SegmentList duration=\"" << segment_duration << "\">" << std::endl;
+
+      
+      int iSegmentSize = (double)iBitrate/8.0 * (double)segment_duration * 1024; // in byte
+      for (int i = 0; i < number_of_segments; i++)
+      {
+        std::ostringstream segmentFileName;
+        segmentFileName << "/repr_" << repr_id << "_seg_" << i << ".264";
+        m_fileSizes[segmentFileName.str()] = iSegmentSize;
+        mpdData << "<SegmentURL media=\"" <<  "repr_" << repr_id << "_seg_" << i << ".264" << "\"/> " << std::endl;
+        //fprintf(stderr, "SegmentName=%s,Size=%d\n", segmentFileName.str().c_str(), iSegmentSize);
+      }
+
+      mpdData << "</SegmentList>" << std::endl << "</Representation>" << std::endl;
     }
   }
 
 
+  mpdData << "</AdaptationSet></Period></MPD>" << std::endl;
+
+  //fprintf(stderr, "MPD='%s'\n", mpdData.str().c_str());
+  m_mpdFileContent = mpdData.str();
+
   infile.close();
+
+  std::ostringstream mpdFileName;
+  mpdFileName << "/" << m_mpdFileName;
+  // store file size for mpd file name
+  m_fileSizes[mpdFileName.str()] = m_mpdFileContent.size();
 
   m_MTU = GetFaceMTU(0);
 
@@ -231,8 +291,21 @@ FakeMultimediaServer::OnInterest(shared_ptr<const Interest> interest)
   m_maxPayloadSize = m_MTU - diff - 4;
 
   //NS_LOG_UNCOND("NewPayload = " << m_maxPayloadSize << " (Overhead: " << diff << ") ");
-
   fname = fname.substr(m_prefix.length(), fname.length()); // remove the prefix
+
+
+
+#ifdef DEBUG
+  // check if file exists and the sanity of the sequence number requested
+  long fileSize = GetFileSize(fname);
+
+  if (fileSize == -1)
+    return; // file does not exist, just quit
+
+  if (seqNo > ceil(fileSize / m_maxPayloadSize))
+    return; // sequence not available
+#endif
+
 
   // handle manifest or data
   if (isManifest)
@@ -241,21 +314,18 @@ FakeMultimediaServer::OnInterest(shared_ptr<const Interest> interest)
     ReturnManifestData(interest, fname);
   } else
   {
-    NS_LOG_INFO("node(" << GetNode()->GetId() << ") responding with Payload for file " << fname);
-    NS_LOG_DEBUG("FileName: " << fname << ", SeqNo:" << seqNo);
-
-#ifdef DEBUG
-    // check if file exists and the sanity of the sequence number requested
-    long fileSize = GetFileSize(fname);
-
-    if (fileSize == -1)
-      return; // file does not exist, just quit
-
-    if (seqNo > ceil(fileSize / m_maxPayloadSize))
-      return; // sequence not available
-#endif
-    // else:
-    ReturnVirtualPayloadData(interest, fname, seqNo);
+    if (fname.compare(1, std::string::npos, m_mpdFileName) == 0)
+    {
+      // we are processing the MPD here... this is important
+      // return m_mpdFileContent
+      NS_LOG_INFO("node(" << GetNode()->GetId() << ") responding with Real Payload for file " << fname);
+      NS_LOG_DEBUG("FileName: " << fname << ", SeqNo:" << seqNo);
+      ReturnPayloadData(interest, fname, seqNo, m_mpdFileContent.c_str(), m_mpdFileContent.size());
+    } else {  
+      NS_LOG_INFO("node(" << GetNode()->GetId() << ") responding with Virtual Payload for file " << fname);
+      NS_LOG_DEBUG("FileName: " << fname << ", SeqNo:" << seqNo);
+      ReturnVirtualPayloadData(interest, fname, seqNo);
+    }
   }
 }
 
@@ -298,6 +368,61 @@ FakeMultimediaServer::ReturnManifestData(shared_ptr<const Interest> interest, st
   m_face->onReceiveData(*data);
 }
 
+
+void
+FakeMultimediaServer::ReturnPayloadData(shared_ptr<const Interest> interest, std::string& fname, uint32_t seqNo, const char* payload, int payload_size)
+{
+  auto data = make_shared<Data>();
+  data->setName(interest->getName());
+  data->setFreshnessPeriod(::ndn::time::milliseconds(m_freshness.GetMilliSeconds()));
+
+  int start_byte_no = seqNo * m_maxPayloadSize;
+
+  if (start_byte_no > payload_size)
+  {
+    fprintf(stderr, "ERROR: Requested seqNo=%d (resulting in byte=%d), but payload_size=%d\n", seqNo, start_byte_no, payload_size);
+    return;
+  }
+
+  int actual_payload_length = m_maxPayloadSize;
+  if ((start_byte_no + actual_payload_length) > payload_size)
+  {
+    actual_payload_length -= (start_byte_no + actual_payload_length) - payload_size;
+  }
+
+  if (actual_payload_length <= 0)
+  {
+    fprintf(stderr, "ERROR: actual_payload_length < 0 (=%d)...\n", actual_payload_length);
+    return;
+  }
+
+
+  auto buffer = make_shared< ::ndn::Buffer>(m_maxPayloadSize);
+
+  memcpy(buffer->get(), &payload[start_byte_no], actual_payload_length);
+
+  data->setContent(buffer);
+
+  Signature signature;
+  SignatureInfo signatureInfo(static_cast< ::ndn::tlv::SignatureTypeValue>(255));
+
+  if (m_keyLocator.size() > 0) {
+    signatureInfo.setKeyLocator(m_keyLocator);
+  }
+
+  signature.setInfo(signatureInfo);
+  signature.setValue(::ndn::nonNegativeIntegerBlock(::ndn::tlv::SignatureValue, m_signature));
+
+  data->setSignature(signature);
+
+
+  // to create real wire encoding
+  Block tmp = data->wireEncode();
+
+  m_transmittedDatas(data, this, m_face);
+  m_face->onReceiveData(*data);
+
+}
 
 
 void

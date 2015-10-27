@@ -63,6 +63,10 @@ protected:
   void
   ReturnVirtualPayloadData(shared_ptr<const Interest> interest, std::string& fname, uint32_t seqNo);
 
+  void
+  ReturnPayloadData(shared_ptr<const Interest> interest, std::string& fname, uint32_t seqNo, const char* payload, int payload_size);
+
+
   long
   GetFileSize(std::string filename);
 
@@ -82,6 +86,8 @@ private:
   std::string m_metaDataFile;
   std::string m_postfixManifest;
   std::string m_mpdFileName;
+
+  std::string m_mpdFileContent;
 
   std::map<std::string,long> m_fileSizes;
   std::map<std::string,size_t> m_packetSizes;
