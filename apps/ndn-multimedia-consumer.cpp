@@ -148,6 +148,7 @@ MultimediaConsumer<Parent>::StartApplication() // Called at time specified by St
 
   m_mpdParsed = false;
   m_initSegmentIsGlobal = false;
+  m_hasInitSegment = false;
   m_hasDownloadedAllSegments = false;
   m_hasStartedPlaying = false;
   m_freezeStartTime = 0;
@@ -225,7 +226,7 @@ void
 MultimediaConsumer<Parent>::OnMpdFile()
 {
 
-  // check if file was gziped
+  // check if file was gziped, if not, we use it as is
   if (m_tempMpdFile.find(".gz") != std::string::npos)
   {
     // file was compressed, decompress it
@@ -310,10 +311,12 @@ MultimediaConsumer<Parent>::OnMpdFile()
     initSegment = adaptationSet->GetSegmentBase ()->GetInitialization ()->GetSourceURL ();
     // TODO: request init segment
     m_initSegmentIsGlobal = true;
+    m_hasInitSegment = true;
   }
   else
   {
     NS_LOG_DEBUG("Adaptation Set does not have INIT Segment");
+    m_hasInitSegment = false;
     /*if (adaptationSet->GetRepresentation().at(0)->GetSegmentBase())
     {
       std::cerr << "Alternative: " << adaptationSet->GetRepresentation().at(0)->GetSegmentBase()->GetInitialization()->GetSourceURL() << std::endl;
@@ -429,7 +432,7 @@ MultimediaConsumer<Parent>::OnMpdFile()
   m_curRepId = m_startRepresentationId;
 
   // okay, check init segment
-  if (initSegment == "")
+  if (initSegment == "" && m_hasInitSegment == true)
   {
     NS_LOG_DEBUG("Using init segment of representation " << m_startRepresentationId);
     initSegment = m_availableRepresentations[m_startRepresentationId]->GetSegmentBase()->GetInitialization()->GetSourceURL();
@@ -450,7 +453,7 @@ MultimediaConsumer<Parent>::OnMpdFile()
     NS_LOG_DEBUG("No init Segment selected.");
     // schedule streaming of first segment
     m_currentDownloadType = Segment;
-
+    ScheduleDownloadOfSegment();
   } else
   {
     // Schedule streaming of init segment

@@ -136,6 +136,7 @@ protected:
 
   bool m_mpdParsed;
   bool m_initSegmentIsGlobal;
+  bool m_hasInitSegment;
   bool m_hasStartedPlaying;
   bool m_hasDownloadedAllSegments;
   bool traceNotDownloadedSegments;
