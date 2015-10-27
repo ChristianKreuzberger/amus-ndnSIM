@@ -77,9 +77,6 @@ FakeFileServer::GetTypeId(void)
                     MakeStringAccessor(&FakeFileServer::m_metaDataFile), MakeStringChecker())
       .AddAttribute("ManifestPostfix", "The manifest string added after a file", StringValue("/manifest"),
                     MakeStringAccessor(&FakeFileServer::m_postfixManifest), MakeStringChecker())
-      .AddAttribute("MaxPayloadSize", "The maximum size of the payload of a data packet", UintegerValue(1400),
-                    MakeUintegerAccessor(&FakeFileServer::m_maxPayloadSize),
-                    MakeUintegerChecker<uint32_t>())
       .AddAttribute("Freshness", "Freshness of data packets, if 0, then unlimited freshness",
                     TimeValue(Seconds(0)), MakeTimeAccessor(&FakeFileServer::m_freshness),
                     MakeTimeChecker())
