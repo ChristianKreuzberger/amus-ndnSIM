@@ -196,6 +196,16 @@ StrategyChoice::findEffectiveStrategy(const pit::Entry& pitEntry) const
   shared_ptr<name_tree::Entry> nte = m_nameTree.get(pitEntry);
 
   BOOST_ASSERT(static_cast<bool>(nte));
+
+  // HOTFIX by Christian Kreuzberger: if there is no name tree entry, use the "default" one
+  if (!nte)
+  {
+    nte = m_nameTree.lookup(Name());
+    fprintf(stderr,
+      "ERROR: No name tree entry found for pitEntry with interest '%s', using default\n",
+        pitEntry.getName().toUri().c_str());
+  }
+
   return this->findEffectiveStrategy(nte);
 }
 
